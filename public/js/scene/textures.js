@@ -1,4 +1,4 @@
-// Texture vẽ bằng canvas: gạch sàn, skyline đêm, nhãn chữ, vũng sáng, màn hình máy tính
+// Texture vẽ bằng canvas: gạch sàn, skyline ngày/đêm, nhãn chữ, vũng sáng, màn hình máy tính
 import * as THREE from 'three';
 import { rng } from './util.js';
 
@@ -39,19 +39,36 @@ export function floorTiles(floorW, floorD) {
   return tex(c, { repeat: [floorW / 4.8, floorD / 4.8] });
 }
 
-/** Ảnh toàn cảnh thành phố đêm (quấn quanh hình trụ). Phần dưới là sông + đường phố nhìn từ cao */
-export function skylinePanorama() {
+/** Ảnh toàn cảnh thành phố (quấn quanh hình trụ). mode: 'night' | 'day' */
+export function skylinePanorama(mode = 'night') {
   const W = 4096, H = 1536;
   const [c, g] = canvas(W, H);
   const r = rng(2024);
+  const isDay = mode === 'day';
+
   // bầu trời
-  const sky = g.createLinearGradient(0, 0, 0, H * 0.42);
-  sky.addColorStop(0, '#060a16'); sky.addColorStop(0.7, '#0d1830'); sky.addColorStop(1, '#1a2744');
+  const sky = g.createLinearGradient(0, 0, 0, H * 0.44);
+  if (isDay) {
+    sky.addColorStop(0, '#5084c4');
+    sky.addColorStop(0.65, '#8bb7e8');
+    sky.addColorStop(1, '#dce9f7');
+  } else {
+    sky.addColorStop(0, '#060a16');
+    sky.addColorStop(0.7, '#0d1830');
+    sky.addColorStop(1, '#1a2744');
+  }
   g.fillStyle = sky; g.fillRect(0, 0, W, H);
-  // quầng sáng đô thị ở chân trời
-  const glow = g.createLinearGradient(0, H * 0.3, 0, H * 0.45);
-  glow.addColorStop(0, 'rgba(80,90,140,0)'); glow.addColorStop(1, 'rgba(255,170,110,0.18)');
-  g.fillStyle = glow; g.fillRect(0, H * 0.3, W, H * 0.15);
+
+  // quầng sáng chân trời
+  const glow = g.createLinearGradient(0, H * 0.28, 0, H * 0.45);
+  if (isDay) {
+    glow.addColorStop(0, 'rgba(255,255,255,0)');
+    glow.addColorStop(1, 'rgba(255,244,214,0.45)');
+  } else {
+    glow.addColorStop(0, 'rgba(80,90,140,0)');
+    glow.addColorStop(1, 'rgba(255,170,110,0.18)');
+  }
+  g.fillStyle = glow; g.fillRect(0, H * 0.28, W, H * 0.17);
 
   const drawWrapped = (fn) => { fn(0); fn(-W); fn(W); };
   const building = (x, base, w, h, tone, lit) => drawWrapped(off => {
@@ -59,56 +76,82 @@ export function skylinePanorama() {
     g.fillStyle = tone; g.fillRect(bx, base - h, w, h);
     const cols = Math.max(2, Math.floor(w / 9)), rows = Math.floor(h / 11);
     for (let yy = 0; yy < rows; yy++) for (let xx = 0; xx < cols; xx++) {
-      if (r() > lit) continue;
+      const roll = r();
       const warm = r() < 0.72;
-      g.fillStyle = warm ? `rgba(255,${200 + r() * 40},${130 + r() * 50},${0.55 + r() * 0.45})` : `rgba(190,215,255,${0.4 + r() * 0.4})`;
+      if (isDay) {
+        if (roll > 0.65) continue;
+        g.fillStyle = warm
+          ? `rgba(210,230,250,${0.25 + r() * 0.25})`
+          : `rgba(160,190,220,${0.2 + r() * 0.25})`;
+      } else {
+        if (roll > lit) continue;
+        g.fillStyle = warm
+          ? `rgba(255,${200 + r() * 40},${130 + r() * 50},${0.55 + r() * 0.45})`
+          : `rgba(190,215,255,${0.4 + r() * 0.4})`;
+      }
       g.fillRect(bx + 3 + xx * (w - 6) / cols, base - h + 5 + yy * 11, Math.max(2, (w - 6) / cols - 3), 5);
     }
-    if (r() < 0.25) { g.fillStyle = 'rgba(255,80,60,0.9)'; g.fillRect(bx + w / 2 - 2, base - h - 6, 4, 4); }
+    if (r() < 0.25 && !isDay) { g.fillStyle = 'rgba(255,80,60,0.9)'; g.fillRect(bx + w / 2 - 2, base - h - 6, 4, 4); }
   });
   const horizon = H * 0.44;
-  // 3 lớp nhà cao tầng: xa → gần
-  for (const [count, minH, maxH, tone, lit] of [[150, 40, 170, '#0b1222', 0.35], [110, 90, 300, '#0e1628', 0.42], [60, 160, 430, '#111a2e', 0.5]]) {
+  const layers = isDay
+    ? [[150, 40, 170, '#96aec9', 0.35], [110, 90, 300, '#7894b5', 0.42], [60, 160, 430, '#5a7699', 0.5]]
+    : [[150, 40, 170, '#0b1222', 0.35], [110, 90, 300, '#0e1628', 0.42], [60, 160, 430, '#111a2e', 0.5]];
+  for (const [count, minH, maxH, tone, lit] of layers) {
     for (let i = 0; i < count; i++) building(r() * W, horizon, 22 + r() * 70, minH + r() * (maxH - minH), tone, lit);
   }
   // sông
   const riverTop = horizon, riverBot = H * 0.7;
   const river = g.createLinearGradient(0, riverTop, 0, riverBot);
-  river.addColorStop(0, '#0f1a33'); river.addColorStop(1, '#08101f');
+  if (isDay) {
+    river.addColorStop(0, '#5d8ec2'); river.addColorStop(1, '#3d6b9c');
+  } else {
+    river.addColorStop(0, '#0f1a33'); river.addColorStop(1, '#08101f');
+  }
   g.fillStyle = river; g.fillRect(0, riverTop, W, riverBot - riverTop);
-  // phản chiếu ánh đèn trên mặt sông
+  // phản chiếu trên mặt sông
   for (let i = 0; i < 2600; i++) {
     const x = r() * W, y = riverTop + Math.pow(r(), 1.6) * (riverBot - riverTop);
     const warm = r() < 0.75;
-    g.fillStyle = warm ? `rgba(255,190,120,${0.08 + r() * 0.35})` : `rgba(170,200,255,${0.06 + r() * 0.25})`;
+    if (isDay) {
+      g.fillStyle = `rgba(235,245,255,${0.05 + r() * 0.18})`;
+    } else {
+      g.fillStyle = warm ? `rgba(255,190,120,${0.08 + r() * 0.35})` : `rgba(170,200,255,${0.06 + r() * 0.25})`;
+    }
     g.fillRect(x, y, 6 + r() * 26, 1.2);
   }
   // cầu
   const by = riverTop + (riverBot - riverTop) * 0.38;
-  g.strokeStyle = '#1b2236'; g.lineWidth = 6;
+  g.strokeStyle = isDay ? '#4c627d' : '#1b2236'; g.lineWidth = 6;
   g.beginPath(); g.moveTo(W * 0.38, by); g.quadraticCurveTo(W * 0.5, by - 26, W * 0.62, by); g.stroke();
   for (let x = W * 0.38; x < W * 0.62; x += 13) {
     const t = (x - W * 0.38) / (W * 0.24);
     const y = by - 26 * 4 * t * (1 - t) * 0.5 - 5;
-    g.fillStyle = 'rgba(255,214,150,0.95)'; g.fillRect(x, y, 3, 3);
-    g.fillStyle = 'rgba(255,190,120,0.12)'; g.fillRect(x, y + 10, 2, 40 + r() * 40);
+    g.fillStyle = isDay ? 'rgba(240,245,250,0.75)' : 'rgba(255,214,150,0.95)'; g.fillRect(x, y, 3, 3);
+    g.fillStyle = isDay ? 'rgba(255,255,255,0.06)' : 'rgba(255,190,120,0.12)'; g.fillRect(x, y + 10, 2, 40 + r() * 40);
   }
   // bờ bên này: phố, mái nhà nhìn từ trên cao
   const shore = riverBot;
-  g.fillStyle = '#0a0f1b'; g.fillRect(0, shore, W, H - shore);
+  g.fillStyle = isDay ? '#364659' : '#0a0f1b'; g.fillRect(0, shore, W, H - shore);
   for (let i = 0; i < 420; i++) {
     const x = r() * W, y = shore + r() * (H - shore), w = 30 + r() * 120, h = 20 + r() * 60;
-    g.fillStyle = `hsl(222 30% ${6 + r() * 6}%)`; g.fillRect(x, y, w, h);
+    g.fillStyle = isDay ? `hsl(215 18% ${28 + r() * 14}%)` : `hsl(222 30% ${6 + r() * 6}%)`;
+    g.fillRect(x, y, w, h);
     for (let k = 0; k < 6; k++) if (r() < 0.5) {
-      g.fillStyle = `rgba(255,${190 + r() * 50},${120 + r() * 60},${0.4 + r() * 0.5})`;
+      g.fillStyle = isDay
+        ? `rgba(220,235,250,${0.25 + r() * 0.25})`
+        : `rgba(255,${190 + r() * 50},${120 + r() * 60},${0.4 + r() * 0.5})`;
       g.fillRect(x + r() * w, y + r() * h, 3, 3);
     }
   }
-  // đường phố có đèn
+  // đường phố
   for (let i = 0; i < 6; i++) {
     const y = shore + 30 + i * (H - shore) / 6;
-    g.fillStyle = 'rgba(255,170,90,0.25)'; g.fillRect(0, y, W, 3);
-    for (let x = 0; x < W; x += 24 + r() * 30) { g.fillStyle = 'rgba(255,210,150,0.8)'; g.fillRect(x, y - 1, 3, 4); }
+    g.fillStyle = isDay ? 'rgba(180,195,210,0.3)' : 'rgba(255,170,90,0.25)'; g.fillRect(0, y, W, 3);
+    for (let x = 0; x < W; x += 24 + r() * 30) {
+      g.fillStyle = isDay ? 'rgba(240,244,248,0.65)' : 'rgba(255,210,150,0.8)';
+      g.fillRect(x, y - 1, 3, 4);
+    }
   }
   const t = tex(c, { aniso: 4 });
   t.wrapS = THREE.RepeatWrapping;
@@ -134,17 +177,50 @@ export function floorLabel(text, { color = '#e3bd6e', size = 72, spacing = 0.3 }
   return { texture: tex(c), aspect: c.width / c.height };
 }
 
-/** Nhãn nổi (sprite) — tên nhân viên, dấu "!" */
-export function pillLabel(text, { size = 40, color = '#f2ecdf', bg = 'rgba(15,17,16,.82)', pad = 14, weight = 600 } = {}) {
+/** Nhãn nổi (sprite) — tên nhân viên + chức danh, hoặc dấu "!" */
+export function pillLabel(text, { subtitle = '', badge = '', size = 38, subSize = 24, color = '#f2ecdf', subColor = '#d9b46a', bg = 'rgba(15,17,16,.86)', border = '', pad = 14, weight = 600 } = {}) {
+  const safeName = String(text ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, 48);
+  const safeSub = String(subtitle ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, 56);
+  const safeBadge = String(badge ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, 18);
+  const titleLine = safeBadge ? `${safeName} · ${safeBadge}` : safeName;
   const [m, mg] = canvas(8, 8);
   mg.font = `${weight} ${size}px ${FONT}`;
-  const w = Math.ceil(mg.measureText(text).width) + pad * 2, h = size + pad * 2;
-  const [c, g] = canvas(w, h);
-  g.font = `${weight} ${size}px ${FONT}`;
-  if (bg) { g.fillStyle = bg; g.beginPath(); g.roundRect(0, 0, w, h, h / 2); g.fill(); }
-  g.fillStyle = color; g.textBaseline = 'middle'; g.textAlign = 'center';
-  g.fillText(text, w / 2, h / 2 + 2);
-  return { texture: tex(c, { aniso: 4 }), aspect: w / h };
+  const w1 = Math.ceil(mg.measureText(titleLine).width);
+  let w2 = 0;
+  if (safeSub) {
+    mg.font = `500 ${subSize}px ${FONT}`;
+    w2 = Math.ceil(mg.measureText(safeSub).width);
+  }
+  const w = Math.max(w1, w2) + pad * 2.2;
+  const h = safeSub ? (size + subSize + pad * 2.0 + 6) : (size + pad * 2);
+  const [c, g] = canvas(Math.ceil(w), Math.ceil(h));
+  const r = Math.min(24, h / 2);
+  if (bg) {
+    g.fillStyle = bg;
+    g.beginPath();
+    g.roundRect(1, 1, c.width - 2, c.height - 2, r);
+    g.fill();
+    if (border) {
+      g.strokeStyle = border;
+      g.lineWidth = 2;
+      g.stroke();
+    }
+  }
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  if (safeSub) {
+    g.fillStyle = color;
+    g.font = `${weight} ${size}px ${FONT}`;
+    g.fillText(titleLine, c.width / 2, pad + size * 0.52);
+    g.fillStyle = subColor;
+    g.font = `500 ${subSize}px ${FONT}`;
+    g.fillText(safeSub, c.width / 2, pad + size + 6 + subSize * 0.5);
+  } else {
+    g.fillStyle = color;
+    g.font = `${weight} ${size}px ${FONT}`;
+    g.fillText(titleLine, c.width / 2, c.height / 2 + 2);
+  }
+  return { texture: tex(c, { aniso: 4 }), aspect: c.width / c.height, lines: safeSub ? 2 : 1 };
 }
 
 let poolTex;

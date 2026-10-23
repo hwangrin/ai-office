@@ -11,31 +11,45 @@ import { repo } from './db.ts';
 import { discoverSessions } from './observer.ts';
 import { pricing } from './pricing.ts';
 import { saveUpload, getUpload, isImage, MAX_UPLOAD } from './attachments.ts';
+import { JavisReadOnlyViewer, localizeDepartmentsEnglish } from './javisViewer.ts';
 import type { Department } from './types.ts';
 
 const PORT = Number(process.env.PORT ?? 4800);
 const HOST = process.env.HOST ?? '127.0.0.1';
 // Token chống trang web lạ gọi API localhost của bạn (CSRF / DNS rebinding)
 const TOKEN = process.env.OFFICE_TOKEN || randomBytes(16).toString('hex');
-const ALLOWED_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`, `[::1]:${PORT}`, ...(process.env.ALLOWED_HOSTS?.split(',') ?? [])]);
+const ALLOWED_HOSTS = new Set([`localhost:${PORT}`, `127.0.0.1:${PORT}`, `[::1]::${PORT}`, `[::1]:${PORT}`, ...(process.env.ALLOWED_HOSTS?.split(',') ?? [])]);
+const VIEWER_READONLY = process.env.JAVIS_VIEWER_READONLY === '1' || process.env.JAVIS_VIEWER_READONLY === 'true';
 
-// ---------- Seed phòng ban & nhân viên mẫu lần đầu chạy
-const office = new Office();
-if (existsSync('office.config.json')) {
-  const cfg = JSON.parse(readFileSync('office.config.json', 'utf8')) as { departments: Department[]; agents?: any[] };
-  const existing = repo.listDepartments();
-  if (existing.length === 0) {
-    cfg.departments.forEach(d => repo.upsertDepartment(d));
-    for (const a of cfg.agents ?? []) office.createAgent(a);
-    console.log(`Đã tạo ${cfg.departments.length} phòng ban, ${cfg.agents?.length ?? 0} nhân viên mẫu`);
-  } else {
-    // Nâng cấp từ bản cũ: phòng ban chưa có style → lấy bố cục mới từ config (một lần duy nhất)
-    let migrated = 0;
-    for (const d of cfg.departments) {
-      const cur = existing.find(e => e.id === d.id);
-      if (!cur || !cur.style) { repo.upsertDepartment(d); migrated++; }
+// ---------- Seed phòng ban & nhân viên mẫu lần đầu chạy (hoặc khởi tạo Javis Read-Only Viewer)
+let office: Office | null = null;
+let viewer: JavisReadOnlyViewer | null = null;
+
+const cfg = existsSync('office.config.json')
+  ? (JSON.parse(readFileSync('office.config.json', 'utf8')) as { departments: Department[]; agents?: any[] })
+  : { departments: [], agents: [] };
+
+if (VIEWER_READONLY) {
+  const initialMock = process.env.JAVIS_VIEWER_MOCK === '1' || process.env.JAVIS_VIEWER_MOCK === 'true';
+  viewer = new JavisReadOnlyViewer(cfg.departments, initialMock);
+  console.log(`🔒 Javis Read-Only Viewer Mode enabled (Brain: Kyan, Live: DISCONNECTED)`);
+} else {
+  office = new Office();
+  if (cfg.departments.length > 0) {
+    const existing = repo.listDepartments();
+    if (existing.length === 0) {
+      cfg.departments.forEach(d => repo.upsertDepartment(d));
+      for (const a of cfg.agents ?? []) office.createAgent(a);
+      console.log(`Đã tạo ${cfg.departments.length} phòng ban, ${cfg.agents?.length ?? 0} nhân viên mẫu`);
+    } else {
+      // Nâng cấp từ bản cũ: phòng ban chưa có style → lấy bố cục mới từ config (một lần duy nhất)
+      let migrated = 0;
+      for (const d of cfg.departments) {
+        const cur = existing.find(e => e.id === d.id);
+        if (!cur || !cur.style) { repo.upsertDepartment(d); migrated++; }
+      }
+      if (migrated) console.log(`Đã cập nhật bố cục 3D cho ${migrated} phòng ban`);
     }
-    if (migrated) console.log(`Đã cập nhật bố cục 3D cho ${migrated} phòng ban`);
   }
 }
 
@@ -76,39 +90,102 @@ api.use((req, res, next) => {
   if (req.headers['x-office-token'] !== TOKEN) return res.status(401).json({ error: 'Sai token' });
   next();
 });
+
+const rejectIfReadOnly = (_req: Request, res: Response, next: NextFunction) => {
+  if (VIEWER_READONLY) {
+    return res.status(403).json({
+      error: 'Read-only Javis viewer mode: mutations and task execution are disabled. Javis remains sole orchestrator.',
+    });
+  }
+  next();
+};
+
 const wrap = (fn: (req: Request, res: Response) => unknown) => (req: Request, res: Response) => {
   try { const r = fn(req, res); if (r !== undefined && !res.headersSent) res.json(r); }
   catch (e: any) { res.status(400).json({ error: e.message }); }
 };
 const id = (req: Request) => String(req.params.id);
 
-api.get('/state', wrap(() => ({ ...office.snapshot(), providers: PROVIDERS })));
-api.post('/agents', wrap(req => office.createAgent(req.body)));
-api.patch('/agents/:id', wrap(req => office.updateAgent(id(req), req.body)));
-api.delete('/agents/:id', wrap(req => { office.deleteAgent(id(req)); return { ok: true }; }));
-api.get('/agents/:id/events', wrap(req => repo.listEvents(id(req), Number(req.query.limit ?? 200))));
-api.get('/agents/:id/tasks', wrap(req => repo.listTasks(id(req))));
-api.post('/agents/:id/tasks', wrap(req => {
+api.get('/state', wrap(() => {
+  if (viewer) {
+    return { ...viewer.snapshot(), providers: ['observer'] };
+  }
+  const snap = office!.snapshot();
+  return {
+    ...snap,
+    departments: localizeDepartmentsEnglish(snap.departments),
+    providers: PROVIDERS,
+    javisViewer: {
+      enabled: false,
+      readOnly: false,
+      brain: 'Kyan',
+      liveConnection: 'DISCONNECTED',
+      liveReason: 'Standard mode (Javis read-only viewer not active).',
+      mode: 'DISCONNECTED',
+      scenarioId: null,
+      appliedEvents: 0,
+      lastEventId: null,
+      lastUpdatedAt: null,
+      coverage: { agents: 'unknown', tasks: 'unknown', subagents: 'unknown' },
+    },
+  };
+}));
+
+// Các endpoint điều khiển kịch bản mock tất định (chỉ có trong chế độ Javis Viewer Read-Only)
+api.get('/javis-viewer/status', wrap(() => {
+  if (!viewer) return { enabled: false, readOnly: false, liveConnection: 'DISCONNECTED' };
+  return viewer.getViewerStatus();
+}));
+api.post('/javis-viewer/mock/scenario', wrap(req => {
+  if (!viewer) throw new Error('Javis Read-Only Viewer is not enabled');
+  const scenario = String(req.body?.scenario ?? 'active-subagent') as 'disconnected' | 'active-subagent' | 'default-all';
+  return viewer.loadScenario(scenario);
+}));
+api.post('/javis-viewer/mock/step', wrap(() => {
+  if (!viewer) throw new Error('Javis Read-Only Viewer is not enabled');
+  return viewer.stepDeterministicMock();
+}));
+api.post('/javis-viewer/mock/reset', wrap(() => {
+  if (!viewer) throw new Error('Javis Read-Only Viewer is not enabled');
+  return viewer.resetToDisconnected();
+}));
+
+api.post('/agents', rejectIfReadOnly, wrap(req => office!.createAgent(req.body)));
+api.patch('/agents/:id', rejectIfReadOnly, wrap(req => office!.updateAgent(id(req), req.body)));
+api.delete('/agents/:id', rejectIfReadOnly, wrap(req => { office!.deleteAgent(id(req)); return { ok: true }; }));
+api.get('/agents/:id/events', wrap(req => viewer ? viewer.listEvents(id(req), Number(req.query.limit ?? 200)) : repo.listEvents(id(req), Number(req.query.limit ?? 200))));
+api.get('/agents/:id/tasks', wrap(req => viewer ? viewer.listTasks(id(req)) : repo.listTasks(id(req))));
+api.post('/agents/:id/tasks', rejectIfReadOnly, wrap(req => {
   const ids: unknown[] = Array.isArray(req.body.attachments) ? req.body.attachments : [];
   const atts = ids.map(x => getUpload(String(x)));
   if (atts.some(a => !a)) throw new Error('Có tệp đính kèm không còn trên máy, hãy đính kèm lại');
-  return office.assignTask(id(req), String(req.body.prompt ?? ''), undefined, undefined, atts as any);
+  return office!.assignTask(id(req), String(req.body.prompt ?? ''), undefined, undefined, atts as any);
 }));
 // Tải tệp lên (ảnh dán, file kéo thả). Thân request là dữ liệu thô của tệp.
-api.post('/uploads', express.raw({ type: () => true, limit: MAX_UPLOAD }), wrap(req => {
+api.post('/uploads', rejectIfReadOnly, express.raw({ type: () => true, limit: MAX_UPLOAD }), wrap(req => {
   const name = decodeURIComponent(String(req.headers['x-filename'] ?? 'tep'));
   const a = saveUpload(name, String(req.headers['x-mime'] ?? ''), req.body as Buffer);
   return { id: a.id, name: a.name, mime: a.mime, size: a.size };
 }));
-api.post('/agents/:id/stop', wrap(req => { office.stopAgent(id(req)); return { cancelledQueued: office.cancelQueued(id(req)) }; }));
-api.post('/agents/:id/reset', wrap(req => { office.resetSession(id(req)); return { ok: true }; }));
-api.post('/departments', wrap(req => { office.upsertDepartment(req.body); return { ok: true }; }));
-api.post('/permissions/:id', wrap(req => ({ ok: office.resolvePermission(id(req), !!req.body.allow) })));
-api.get('/tasks', wrap(() => repo.listTasks(undefined, 100)));
-api.get('/discover', wrap(() => discoverSessions(40)));
+api.post('/agents/:id/stop', rejectIfReadOnly, wrap(req => { office!.stopAgent(id(req)); return { cancelledQueued: office!.cancelQueued(id(req)) }; }));
+api.post('/agents/:id/reset', rejectIfReadOnly, wrap(req => { office!.resetSession(id(req)); return { ok: true }; }));
+api.post('/departments', rejectIfReadOnly, wrap(req => { office!.upsertDepartment(req.body); return { ok: true }; }));
+api.post('/permissions/:id', rejectIfReadOnly, wrap(req => ({ ok: office!.resolvePermission(id(req), !!req.body.allow) })));
+api.get('/tasks', wrap(() => viewer ? viewer.listTasks() : repo.listTasks(undefined, 100)));
+api.get('/discover', wrap(() => VIEWER_READONLY ? [] : discoverSessions(40)));
 // Token & chi phí: range = today | 7d | 30d | all
 api.get('/usage', wrap(req => {
   const range = String(req.query.range ?? 'today');
+  if (VIEWER_READONLY) {
+    return {
+      range,
+      since: 0,
+      agents: [],
+      total: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0, unpriced: 0, tasks: 0 },
+      byDay: [],
+      usdToVnd: pricing().usdToVnd ?? null,
+    };
+  }
   const start = new Date(); start.setHours(0, 0, 0, 0);
   const since = range === 'all' ? 0 : range === '30d' ? start.getTime() - 29 * 864e5 : range === '7d' ? start.getTime() - 6 * 864e5 : start.getTime();
   const rows = repo.usageSummary(since);
@@ -141,13 +218,15 @@ const broadcast = (type: string, payload: unknown) => {
   const msg = JSON.stringify({ type, payload });
   wss.clients.forEach((c: WebSocket) => { if (c.readyState === 1) c.send(msg); });
 };
-office.on('event', ev => broadcast('event', ev));
-office.on('status', s => broadcast('status', s));
-office.on('permission', p => broadcast('permission', p));
-office.on('permission-resolved', p => broadcast('permission-resolved', p));
-office.on('usage', u => broadcast('usage', u));
+
 let changedTimer: NodeJS.Timeout | undefined;
-office.on('changed', () => { clearTimeout(changedTimer); changedTimer = setTimeout(() => broadcast('changed', null), 100); });
+const sourceEmitter = viewer ?? office!;
+sourceEmitter.on('event', ev => broadcast('event', ev));
+sourceEmitter.on('status', s => broadcast('status', s));
+sourceEmitter.on('permission', p => broadcast('permission', p));
+sourceEmitter.on('permission-resolved', p => broadcast('permission-resolved', p));
+sourceEmitter.on('usage', u => broadcast('usage', u));
+sourceEmitter.on('changed', () => { clearTimeout(changedTimer); changedTimer = setTimeout(() => broadcast('changed', null), 100); });
 
 server.on('error', (e: NodeJS.ErrnoException) => {
   if (e.code === 'EADDRINUSE') {
@@ -160,10 +239,14 @@ server.on('error', (e: NodeJS.ErrnoException) => {
 });
 server.listen(PORT, HOST, () => {
   console.log(`\n🏢 Văn phòng ảo: http://localhost:${PORT}`);
-  const auth = process.env.ANTHROPIC_API_KEY ? 'ANTHROPIC_API_KEY trong .env (trả theo token)'
-    : process.env.CLAUDE_CODE_OAUTH_TOKEN ? `CLAUDE_CODE_OAUTH_TOKEN trong .env (${process.env.CLAUDE_CODE_OAUTH_TOKEN.slice(0, 10)}…)`
-    : 'đăng nhập Claude Code trên máy (~/.claude)';
-  console.log(`   Claude Code đăng nhập bằng: ${auth}`);
+  if (VIEWER_READONLY) {
+    console.log(`   Chế độ: Javis Read-Only Viewer (Live: DISCONNECTED, Deterministic Mock: Ready)`);
+  } else {
+    const auth = process.env.ANTHROPIC_API_KEY ? 'ANTHROPIC_API_KEY trong .env (trả theo token)'
+      : process.env.CLAUDE_CODE_OAUTH_TOKEN ? `CLAUDE_CODE_OAUTH_TOKEN trong .env (${process.env.CLAUDE_CODE_OAUTH_TOKEN.slice(0, 10)}…)`
+      : 'đăng nhập Claude Code trên máy (~/.claude)';
+    console.log(`   Claude Code đăng nhập bằng: ${auth}`);
+  }
   if (!process.env.OFFICE_TOKEN) console.log(`   Token phiên này: ${TOKEN} (đặt OFFICE_TOKEN trong .env để cố định)`);
 });
 

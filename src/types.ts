@@ -49,6 +49,52 @@ export interface Agent {
   /** Claude: session_id · Codex: thread_id · OpenAI chat: previous_response_id · Observer: id file JSONL */
   sessionId?: string | null;
   createdAt: number;
+  /** Phân loại cho Javis read-only viewer: persistent (cố định) hoặc subagent (tạm thời) */
+  actorKind?: 'persistent' | 'subagent';
+  parentId?: string | null;
+  sourceEventId?: string | null;
+}
+
+export interface JavisViewerEvent {
+  eventId: string;
+  ts: number;
+  type:
+    | 'roster.sync'
+    | 'task.started'
+    | 'task.completed'
+    | 'subagent.spawned'
+    | 'subagent.working'
+    | 'subagent.completed'
+    | 'agent.waiting'
+    | 'agent.idle'
+    | 'connection.status';
+  actorId?: string;
+  actorKind?: 'persistent' | 'subagent';
+  name?: string;
+  title?: string;
+  departmentId?: string;
+  parentId?: string | null;
+  taskTitle?: string;
+  text?: string;
+  connectionStatus?: 'DISCONNECTED' | 'MOCK_ACTIVE' | 'STALE';
+}
+
+export interface JavisViewerStatus {
+  enabled: boolean;
+  readOnly: boolean;
+  brain: string;
+  liveConnection: 'DISCONNECTED';
+  liveReason: string;
+  mode: 'DISCONNECTED' | 'MOCK_DETERMINISTIC';
+  scenarioId: string | null;
+  appliedEvents: number;
+  lastEventId: string | null;
+  lastUpdatedAt: number | null;
+  coverage: {
+    agents: 'mock' | 'unknown';
+    tasks: 'mock' | 'unknown';
+    subagents: 'mock' | 'unknown';
+  };
 }
 
 export interface Attachment { id: string; name: string; mime: string; size: number; path: string }

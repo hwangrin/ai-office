@@ -24,13 +24,23 @@
   #stage canvas { display: block; }
 
   .card { position: absolute; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-  #hud { top: 14px; left: 14px; padding: 14px 18px; max-width: min(330px, calc(100% - 28px)); }
+  #hud { top: 14px; left: 14px; padding: 14px 18px; max-width: min(370px, calc(100% - 28px)); z-index: 4; }
+  #hud .eyebrow-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   #hud .eyebrow { font-size: 11px; letter-spacing: .16em; color: var(--gold); text-transform: uppercase; font-weight: 600; }
-  #hud h1 { font: 600 18px/1.3 'Noto Serif', Georgia, serif; margin: 4px 0 6px; }
+  #hud .clock-badge { font-size: 11.5px; font-variant-numeric: tabular-nums; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line-2); color: var(--text); background: rgba(255,255,255,.04); white-space: nowrap; }
+  #hud .clock-badge.is-day { border-color: rgba(143,179,255,.45); color: #dce9ff; }
+  #hud .clock-badge.is-night { border-color: rgba(217,180,106,.45); color: var(--gold); }
+  #hud h1 { font: 600 18px/1.3 'Noto Serif', Georgia, serif; margin: 6px 0 6px; }
   #hud p { margin: 0 0 6px; color: var(--muted); font-size: 13px; }
   #hud .count { color: var(--gold); font-weight: 600; font-size: 13px; }
+  #viewer-banner { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); }
+  #viewer-banner .vb-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+  .vb-pill { font-size: 10.5px; font-weight: 600; letter-spacing: .05em; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; border: 1px solid var(--line-2); }
+  .vb-pill.disconnected { color: var(--warn); border-color: rgba(255,154,77,.45); background: rgba(255,154,77,.08); }
+  .vb-pill.readonly { color: var(--blue); border-color: rgba(143,179,255,.45); background: rgba(143,179,255,.08); }
+  .vb-pill.mock { color: var(--ok); border-color: rgba(127,209,160,.45); background: rgba(127,209,160,.08); }
 
-  #toolbar { position: absolute; top: 14px; right: 14px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 60%; }
+  #toolbar { position: absolute; top: 14px; right: 14px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 62%; z-index: 4; }
   .btn { background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; padding: 7px 12px; cursor: pointer; white-space: nowrap; backdrop-filter: blur(10px); }
   .btn:hover { border-color: var(--gold); }
   .btn.primary { background: var(--gold); color: #1a1408; border-color: var(--gold); font-weight: 600; }
@@ -51,7 +61,7 @@
   /* Panel nhân viên */
   #panel { top: 14px; right: 14px; bottom: 14px; width: 400px; display: none; flex-direction: column; z-index: 5; }
   #panel.open { display: flex; }
-  body.panel-open #toolbar { right: 428px; left: 362px; max-width: none; }
+  body.panel-open #toolbar { right: 428px; left: 392px; max-width: none; }
   body.panel-open #feed { display: none; }
   #panel header { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
   #panel header h2 { margin: 0; font: 600 17px 'Noto Serif', Georgia, serif; }
@@ -62,6 +72,7 @@
   .chip.status-waiting { color: var(--warn); border-color: var(--warn); }
   .chip.status-error { color: var(--err); border-color: var(--err); }
   .chip.status-queued { color: var(--blue); border-color: var(--blue); }
+  .chip.kind-subagent { color: var(--blue); border-color: rgba(143,179,255,.55); }
   #panel .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
   #perms { padding: 0 16px; }
   .perm { margin-top: 10px; border: 1px solid var(--warn); border-radius: 10px; padding: 10px; background: rgba(255,154,77,.07); }
@@ -164,10 +175,17 @@
 <div id="stage">
   <div id="loading"><div class="box"><b>Văn phòng ảo</b><span id="loading-text">Đang mở cửa văn phòng…</span></div></div>
   <div id="hud" class="card">
-    <div class="eyebrow">Văn phòng agency · Trực tiếp</div>
+    <div class="eyebrow-row">
+      <div class="eyebrow" id="hud-eyebrow">Văn phòng agency · Trực tiếp</div>
+      <div class="clock-badge" id="hud-clock" title="Local wall clock &amp; Day/Night environment">--:--:--</div>
+    </div>
     <h1 id="hud-title">Đang kết nối…</h1>
     <p id="hud-sub">Đèn chỉ sáng ở bàn có việc thật.</p>
     <div class="count" id="hud-count"></div>
+    <div id="viewer-banner">
+      <div class="vb-row" id="viewer-pills"></div>
+      <div id="viewer-reason"></div>
+    </div>
   </div>
   <div id="toolbar">
     <button class="btn primary" id="btn-brief">Giao brief</button>
@@ -175,11 +193,12 @@
     <button class="btn" id="btn-attach">Gắn phiên</button>
     <button class="btn desktop-only" id="btn-depts">Phòng ban</button>
     <button class="btn" id="btn-cost">Chi phí</button>
+    <button class="btn" id="btn-labels" title="Toggle floating agent name &amp; title labels (Always / Hover / Off)">Labels: Always</button>
     <button class="btn ghost" id="btn-overview">Toàn cảnh</button>
     <button class="btn ghost desktop-only" id="btn-quality">Chất lượng</button>
   </div>
   <div id="feed" class="card"></div>
-  <div id="hint">Kéo để xoay · cuộn để phóng to · bấm vào nhân viên để giao việc · nhấp đúp để đến gần</div>
+  <div id="hint">Kéo để xoay · cuộn để phóng to · bấm vào nhân viên để xem chi tiết · nhấp đúp để đến gần</div>
   <aside id="panel" class="card">
     <header>
       <h2 id="p-name"></h2>

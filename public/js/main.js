@@ -1,15 +1,27 @@
-// Ứng dụng văn phòng ảo: dữ liệu, WebSocket, HUD, panel nhân viên, modal. Cảnh 3D nằm trong scene/office3d.js
-import { Office3D, QUALITY } from './scene/office3d.js';
+// Ứng dụng văn phòng ảo: dữ liệu, WebSocket, HUD, đồng hồ ngày/đêm, nhãn tên, panel nhân viên, modal. Cảnh 3D nằm trong scene/office3d.js
+import { Office3D, QUALITY, LABEL_MODES } from './scene/office3d.js';
 
 const TOKEN = document.querySelector('meta[name="office-token"]').content;
 const PROVIDER_LABEL = {
   'claude-code': 'Claude Code', 'codex': 'OpenAI Codex', 'anthropic-chat': 'Claude chat (API)',
-  'openai-chat': 'OpenAI chat (API)', 'observer': 'Quan sát phiên',
+  'openai-chat': 'OpenAI chat (API)', 'observer': 'Read-Only Observer',
 };
-const STATUS_LABEL = { idle: 'Rảnh', queued: 'Chờ việc', working: 'Đang làm', waiting: 'Xin duyệt', error: 'Lỗi', offline: 'Offline' };
+const STATUS_LABEL = { idle: 'Idle', queued: 'Queued', working: 'Working', waiting: 'Waiting Review', error: 'Error', offline: 'Offline' };
 const SHAPES = { zone: 'Khu cụm bàn', lounge: 'Lounge trung tâm', room: 'Phòng họp kính', cafe: 'Khu cà phê (giờ nghỉ)', game: 'Khu giải trí (giờ nghỉ)' };
 const AMENITY = new Set(['cafe', 'game']);   // khu nghỉ: không xếp nhân viên vào
 const THEMES = { docs: 'Văn bản', code: 'Code', design: 'Thiết kế', charts: 'Biểu đồ', media: 'Mạng xã hội', video: 'Dựng phim' };
+
+const DEPT_DISPLAY_EN = {
+  'thiet-ke': 'Visual Design',
+  'chien-luoc': 'Strategy & Content',
+  'ky-thuat': 'Engineering & Web',
+  'san-xuat-noi-dung': 'Content Production',
+  'dieu-phoi': 'Coordination',
+  'khach-hang': 'Client Services',
+  'san-xuat-phim': 'Film Production',
+  'ca-phe': 'Cafe',
+  'giai-tri': 'Recreation',
+};
 
 // ---------------- Tiện ích
 const $ = (s) => document.querySelector(s);
@@ -97,7 +109,7 @@ const attHtml = (atts) => atts?.length ? `<div class="ev-atts">${atts.map(a => /
   : `<a href="${fileUrl(a)}" title="Tải ${esc(a.name)}"><div class="ficon">${esc(extOf(a.name))}</div><span>${esc(a.name)}</span></a>`).join('')}</div>` : '';
 
 // ---------------- Trạng thái
-const state = { departments: [], agents: [], permissions: [], feed: [], providers: [], usageToday: null };
+const state = { departments: [], agents: [], permissions: [], feed: [], providers: [], usageToday: null, javisViewer: null };
 const fmtTok = (n) => !n ? '0' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 1 : 2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + 'k' : String(Math.round(n));
 const fmtUsd = (v) => v >= 100 ? '$' + v.toFixed(0) : v >= 1 ? '$' + v.toFixed(2) : v > 0 ? '$' + v.toFixed(3) : '$0';
 const fmtVnd = (v, rate) => rate ? ' · ' + Math.round(v * rate).toLocaleString('vi-VN') + '₫' : '';
@@ -105,6 +117,7 @@ const usageOf = (id) => state.usageToday?.agents.find(a => a.agentId === id);
 let selectedId = null;
 const agentById = (id) => state.agents.find(a => a.id === id);
 const deptById = (id) => state.departments.find(d => d.id === id);
+const deptDisplayName = (id) => DEPT_DISPLAY_EN[id] ?? deptById(id)?.name ?? id;
 
 // ---------------- Cảnh 3D
 const params = new URLSearchParams(location.search);
@@ -115,6 +128,7 @@ const office = new Office3D($('#stage'), {
 if (params.get('q') && QUALITY[params.get('q')]) office.quality = params.get('q');
 if (params.get('auto') === '0') office.autoQuality = false;
 if (params.get('nghi') === 'nhanh') office.leisureSpeed = 10;   // thử nhanh cảnh đi nghỉ
+if (params.get('labels') && LABEL_MODES[params.get('labels')]) office.setLabelMode(params.get('labels'));
 office.onLeisure = () => renderHud();
 office.onQualityAuto = (q) => { renderQuality(); toast(`Máy hơi chậm — đã chuyển chất lượng hình sang "${QUALITY[q]}"`); };
 
@@ -127,24 +141,121 @@ $('#btn-quality').onclick = () => {
 };
 $('#btn-overview').onclick = () => office.overview();
 
+function renderLabelToggle() {
+  const btn = $('#btn-labels');
+  if (!btn) return;
+  btn.textContent = `Labels: ${LABEL_MODES[office.labelMode] ?? 'Always'}`;
+}
+$('#btn-labels').onclick = () => {
+  const order = ['always', 'hover', 'off'];
+  const next = order[(order.indexOf(office.labelMode) + 1) % order.length];
+  office.setLabelMode(next);
+  renderLabelToggle();
+};
+
+// ---------------- Đồng hồ địa phương & Ngày/Đêm (hỗ trợ test-time override)
+let clockOverride = params.get('time') || params.get('clock') || null;
+const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local';
+
+function parseClockOverride(val) {
+  if (!val) return null;
+  const s = String(val).trim().toLowerCase();
+  if (s === 'day') return { hh: 10, mm: 30, ss: 0, label: '10:30:00 (Day Override)' };
+  if (s === 'night') return { hh: 22, mm: 15, ss: 0, label: '22:15:00 (Night Override)' };
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+  if (!m) return null;
+  const hh = Math.min(23, Math.max(0, Number(m[1])));
+  const mm = Math.min(59, Math.max(0, Number(m[2])));
+  const ss = Math.min(59, Math.max(0, Number(m[3] ?? 0)));
+  const pad = (n) => String(n).padStart(2, '0');
+  return { hh, mm, ss, label: `${pad(hh)}:${pad(mm)}:${pad(ss)} (Override)` };
+}
+
+function updateClockAndEnvironment() {
+  const ov = parseClockOverride(clockOverride);
+  let hh, timeStr;
+  if (ov) {
+    hh = ov.hh;
+    timeStr = ov.label;
+  } else {
+    const now = new Date();
+    hh = now.getHours();
+    const pad = (n) => String(n).padStart(2, '0');
+    timeStr = `${pad(hh)}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  }
+  const isDay = hh >= 7 && hh < 19;
+  const mode = isDay ? 'day' : 'night';
+  office.setDayNight(mode);
+  const el = $('#hud-clock');
+  if (el) {
+    el.textContent = `${isDay ? '☀ Day' : '☾ Night'} · ${timeStr} · ${localTz}`;
+    el.classList.toggle('is-day', isDay);
+    el.classList.toggle('is-night', !isDay);
+  }
+  return { hh, isDay, mode, timeStr, timeZone: localTz, override: !!ov };
+}
+window.__setClockOverride = (val) => { clockOverride = val; return updateClockAndEnvironment(); };
+setInterval(updateClockAndEnvironment, 1000);
+
 // ---------------- HUD & feed
+function applyViewerModeUi() {
+  const v = state.javisViewer;
+  const ro = !!v?.readOnly;
+  for (const sel of ['#btn-brief', '#btn-add', '#btn-attach', '#btn-depts', '#btn-cost']) {
+    const el = $(sel);
+    if (el) el.style.display = ro ? 'none' : '';
+  }
+  const banner = $('#viewer-banner');
+  if (!banner) return;
+  if (ro) {
+    banner.style.display = 'block';
+    $('#hud-eyebrow').textContent = 'JAVIS WORKFORCE · READ-ONLY VIEWER';
+    const pills = [
+      `<span class="vb-pill readonly">READ-ONLY</span>`,
+      `<span class="vb-pill disconnected">LIVE: ${esc(v.liveConnection || 'DISCONNECTED')}</span>`,
+    ];
+    if (v.mode === 'MOCK_DETERMINISTIC') {
+      pills.push(`<span class="vb-pill mock">MOCK: ${esc(v.scenarioId || 'ACTIVE')} (${v.appliedEvents} EVTS)</span>`);
+    }
+    $('#viewer-pills').innerHTML = pills.join('');
+    $('#viewer-reason').textContent = v.liveReason || 'Live Javis connection is DISCONNECTED (401 auth boundary).';
+  } else {
+    banner.style.display = 'none';
+    $('#hud-eyebrow').textContent = 'Văn phòng agency · Trực tiếp';
+  }
+}
+
 function renderHud() {
+  applyViewerModeUi();
+  const v = state.javisViewer;
+  const ro = !!v?.readOnly;
   const working = state.agents.filter(a => a.status === 'working' || a.status === 'waiting');
+  const subagents = state.agents.filter(a => a.actorKind === 'subagent');
   const lead = working.find(a => a.status === 'waiting') ?? working[0];
   if (lead) {
-    const dept = deptById(lead.departmentId)?.name ?? '';
-    $('#hud-title').textContent = lead.status === 'waiting' ? `${lead.name} cần bạn duyệt` : `${dept}: đang làm`;
+    const dept = deptDisplayName(lead.departmentId);
+    $('#hud-title').textContent = lead.status === 'waiting'
+      ? `${lead.name}: Awaiting Review`
+      : `${dept}: Active`;
     $('#hud-sub').textContent = lead.currentTask?.prompt?.slice(0, 110) || `${lead.name} · ${lead.role}`;
   } else {
-    $('#hud-title').textContent = state.agents.length ? 'Văn phòng đang nghỉ' : 'Chưa có nhân viên';
-    $('#hud-sub').textContent = state.agents.length ? 'Giao brief để cả nhà bắt đầu làm việc. Đèn chỉ sáng ở bàn có việc thật.' : 'Bấm “+ Nhân viên” để tuyển người đầu tiên.';
+    if (ro) {
+      $('#hud-title').textContent = v.mode === 'MOCK_DETERMINISTIC'
+        ? 'All Roster Agents Idle'
+        : 'Live Javis Disconnected · Roster Idle';
+      $('#hud-sub').textContent = 'Roster presence does not imply active work. Only event-backed tasks illuminate desks.';
+    } else {
+      $('#hud-title').textContent = state.agents.length ? 'Văn phòng đang nghỉ' : 'Chưa có nhân viên';
+      $('#hud-sub').textContent = state.agents.length ? 'Giao brief để cả nhà bắt đầu làm việc. Đèn chỉ sáng ở bàn có việc thật.' : 'Bấm “+ Nhân viên” để tuyển người đầu tiên.';
+    }
   }
   const q = state.agents.reduce((s, a) => s + (a.queued || 0), 0);
   const t = state.usageToday?.total;
-  const spend = t && (t.input + t.output) > 0 ? ` · Hôm nay ${fmtTok(t.input + t.output + t.cacheRead + t.cacheWrite)} token${t.costUsd > 0 ? ' ~' + fmtUsd(t.costUsd) : ''}` : '';
+  const spend = !ro && t && (t.input + t.output) > 0 ? ` · Hôm nay ${fmtTok(t.input + t.output + t.cacheRead + t.cacheWrite)} token${t.costUsd > 0 ? ' ~' + fmtUsd(t.costUsd) : ''}` : '';
   const lc = office.leisureCounts?.() ?? { cafe: 0, game: 0 };
-  const rest = [lc.cafe && `${lc.cafe} người uống cà phê`, lc.game && `${lc.game} người chơi game`].filter(Boolean).join(', ');
-  $('#hud-count').textContent = `${working.length} chuyên gia đang làm việc` + (q ? ` · ${q} việc đang chờ` : '') + ` · ${state.agents.length} nhân sự` + (rest ? ` · ${rest}` : '') + spend;
+  const rest = [lc.cafe && `${lc.cafe} at Cafe`, lc.game && `${lc.game} at Recreation`].filter(Boolean).join(', ');
+  const subCount = subagents.length ? ` · ${subagents.length} subagent` : '';
+  $('#hud-count').textContent = `${working.length} working` + (q ? ` · ${q} queued` : '') + ` · ${state.agents.length} total actors` + subCount + (rest ? ` · ${rest}` : '') + spend;
 }
 /** Dòng sự kiện góc dưới: chỉ giữ tin trong 2 phút gần nhất cho đỡ che khu cà phê / giải trí */
 function renderFeed() {
@@ -167,9 +278,19 @@ async function openPanel(id) {
 function closePanel() { selectedId = null; $('#panel').classList.remove('open'); document.body.classList.remove('panel-open'); office.select(null); }
 function renderPanel() {
   const a = agentById(selectedId); if (!a) return closePanel();
+  const ro = !!state.javisViewer?.readOnly;
   $('#p-name').textContent = a.name;
-  $('#p-role').textContent = `${a.role || '—'} · ${deptById(a.departmentId)?.name ?? ''}`;
-  const chips = [`<span class="chip status-${a.status}">${STATUS_LABEL[a.status] ?? a.status}</span>`, `<span class="chip">${PROVIDER_LABEL[a.provider]}</span>`];
+  $('#p-role').textContent = `${a.role || '—'} · ${deptDisplayName(a.departmentId)}`;
+  const chips = [
+    `<span class="chip status-${a.status}">${STATUS_LABEL[a.status] ?? a.status}</span>`,
+    `<span class="chip">${PROVIDER_LABEL[a.provider] ?? a.provider}</span>`,
+  ];
+  if (a.actorKind === 'subagent') {
+    chips.push(`<span class="chip kind-subagent">Temporary Subagent</span>`);
+    if (a.parentId) chips.push(`<span class="chip">Parent: ${esc(a.parentId)}</span>`);
+  } else if (a.actorKind === 'persistent') {
+    chips.push(`<span class="chip">Persistent Agent</span>`);
+  }
   if (a.model) chips.push(`<span class="chip">${esc(a.model)}</span>`);
   if (a.permissionMode && !['anthropic-chat', 'openai-chat', 'observer'].includes(a.provider)) chips.push(`<span class="chip">quyền: ${a.permissionMode}</span>`);
   if (a.sessionId) chips.push(`<span class="chip" title="${esc(a.sessionId)}">phiên ${esc(a.sessionId.split(/[\\/]/).pop().slice(0, 10))}…</span>`);
@@ -177,13 +298,17 @@ function renderPanel() {
   const u = usageOf(a.id);
   if (u) chips.push(`<span class="chip chip-cost" title="Token vào ${fmtTok(u.input)} · ra ${fmtTok(u.output)} · cache ${fmtTok(u.cacheRead + u.cacheWrite)}">Hôm nay: ${fmtTok(u.input + u.output + u.cacheRead + u.cacheWrite)} token${u.costUsd > 0 ? ' · ~' + fmtUsd(u.costUsd) : u.unpriced ? ' · chưa có giá' : ''}</span>`);
   $('#p-chips').innerHTML = chips.join('');
-  const observer = a.provider === 'observer';
+  const observer = ro || a.provider === 'observer';
   $('#composer').style.display = observer ? 'none' : 'flex';
   $('#p-stop').style.display = observer ? 'none' : '';
   $('#p-reset').style.display = observer ? 'none' : '';
+  $('#p-edit').style.display = ro ? 'none' : '';
+  $('#p-del').style.display = ro ? 'none' : '';
   renderPerms();
 }
 function renderPerms() {
+  const ro = !!state.javisViewer?.readOnly;
+  if (ro) { $('#perms').innerHTML = ''; return; }
   const list = state.permissions.filter(p => p.agentId === selectedId);
   $('#perms').innerHTML = list.map(p => `
     <div class="perm"><b>Xin quyền: ${esc(p.tool)}</b>
@@ -302,7 +427,7 @@ $('#btn-brief').onclick = () => {
   openModal(`
     <h3>Giao brief</h3>
     <form id="brief-form">
-      <div class="field"><label>Người nhận</label><select name="to">${state.agents.filter(a => a.provider !== 'observer').map(a => `<option value="${a.id}" ${a.id === lead.id ? 'selected' : ''}>${esc(a.name)} — ${esc(deptById(a.departmentId)?.name ?? '')}</option>`).join('')}</select></div>
+      <div class="field"><label>Người nhận</label><select name="to">${state.agents.filter(a => a.provider !== 'observer').map(a => `<option value="${a.id}" ${a.id === lead.id ? 'selected' : ''}>${esc(a.name)} — ${esc(deptDisplayName(a.departmentId))}</option>`).join('')}</select></div>
       <div class="field brief-drop" id="brief-drop"><label>Brief</label><textarea name="prompt" style="min-height:140px" placeholder="VD: Lên 3 mẫu quảng cáo Naver Power Content cho resort ở Phú Quốc, khách Hàn 30-45 tuổi, kèm gợi ý hình ảnh. Dán ảnh tham khảo bằng Ctrl+V hoặc kéo thả tệp vào đây."></textarea>
         <div class="drop-hint">Thả tệp vào để đính kèm</div></div>
       <div class="atts" id="brief-atts" style="margin:-4px 0 10px"></div>
@@ -374,7 +499,7 @@ async function renderCost(range = 'today') {
   costRange = range;
   const box = $('#cost-box'); if (!box) return;
   let d;
-  try { d = await api(`/usage?range=${range}`); } catch (e) { box.innerHTML = `<p>${esc(e.message)}</p>`; return; }
+  try { d = await api('/usage?range=' + range); } catch (e) { box.innerHTML = `<p>${esc(e.message)}</p>`; return; }
   const rate = d.usdToVnd;
   const tabs = [['today', 'Hôm nay'], ['7d', '7 ngày'], ['30d', '30 ngày'], ['all', 'Tất cả']]
     .map(([k, v]) => `<button class="btn small ${k === range ? 'primary' : ''}" data-range="${k}">${v}</button>`).join('');
@@ -422,7 +547,7 @@ function connect() {
       if (a) { a.status = payload.status; office.setStatus(a.id, a.status); renderHud(); if (a.id === selectedId) renderPanel(); }
       clearTimeout(connect._t); connect._t = setTimeout(() => loadState().catch(() => {}), 400);
     } else if (type === 'event') {
-      if (['task', 'result', 'error', 'permission'].includes(payload.kind)) { state.feed.push(payload); state.feed = state.feed.slice(-30); renderFeed(); }
+      if (['task', 'result', 'error', 'permission', 'system'].includes(payload.kind)) { state.feed.push(payload); state.feed = state.feed.slice(-30); renderFeed(); }
       if (payload.kind === 'task' && payload.data?.fromAgentId) office.courier(payload.data.fromAgentId, payload.agentId);
       if (payload.agentId === selectedId) appendLog(payload);
     } else if (type === 'permission') {
@@ -441,5 +566,8 @@ function connect() {
 await Promise.all([document.fonts.load('600 64px "Be Vietnam Pro"'), document.fonts.load('400 14px "Be Vietnam Pro"')]).catch(() => {});
 await office.init();
 renderQuality();
+renderLabelToggle();
+updateClockAndEnvironment();
 window.__office = office; // tiện debug: __office.stats()
+window.__state = state;
 connect();
