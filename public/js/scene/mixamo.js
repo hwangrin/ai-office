@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { hash } from './util.js';
+import { assignedCharacter } from './character-assignments.js';
 import { cupProp, gamepadProp } from './leisure.js';
 
 const BASE = '/models/people/';
@@ -104,9 +105,10 @@ export class MixamoLibrary {
     return this.scaled.get(ch.id);
   }
 
-  create(agentId) {
+  create(agent) {
+    const agentId = typeof agent === 'string' ? agent : agent.id;
     if (!this.ready) return null;
-    const ch = this.chars[hash(agentId) % this.chars.length];
+    const ch = this.chars.find(c => c.id === assignedCharacter(agent)) ?? this.chars[hash(agentId) % this.chars.length];
     return new MixamoPerson(agentId, ch, this.clipsFor(ch), this.manifest.states);
   }
 }

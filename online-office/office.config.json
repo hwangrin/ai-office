@@ -1,0 +1,137 @@
+{
+  "departments": [
+    {
+      "id": "thiet-ke",
+      "name": "Thiết kế hình ảnh",
+      "color": "#4d6189",
+      "x": -8.6,
+      "z": -6.3,
+      "w": 8.6,
+      "d": 6.4,
+      "style": {
+        "shape": "zone",
+        "screenTheme": "design",
+        "label": "Thiết kế",
+        "seed": 11
+      }
+    },
+    {
+      "id": "chien-luoc",
+      "name": "Chiến lược · Nội dung",
+      "color": "#8a7db3",
+      "x": 8.6,
+      "z": -6.3,
+      "w": 8.6,
+      "d": 6.4,
+      "style": {
+        "shape": "zone",
+        "screenTheme": "charts",
+        "label": "Chiến lược",
+        "seed": 23
+      }
+    },
+    {
+      "id": "ky-thuat",
+      "name": "Kỹ thuật · Web",
+      "color": "#8c9b6b",
+      "x": -8.6,
+      "z": 4.9,
+      "w": 8.6,
+      "d": 6.4,
+      "style": {
+        "shape": "zone",
+        "screenTheme": "code",
+        "label": "Kỹ thuật",
+        "seed": 37
+      }
+    },
+    {
+      "id": "san-xuat-noi-dung",
+      "name": "Sản xuất nội dung",
+      "color": "#b9745a",
+      "x": 8.6,
+      "z": 4.9,
+      "w": 8.6,
+      "d": 6.4,
+      "style": {
+        "shape": "zone",
+        "screenTheme": "media",
+        "label": "Marketing",
+        "seed": 41
+      }
+    },
+    {
+      "id": "dieu-phoi",
+      "name": "Điều phối",
+      "color": "#2f3033",
+      "x": 0,
+      "z": -0.7,
+      "w": 8.4,
+      "d": 8.4,
+      "style": {
+        "shape": "lounge",
+        "screenTheme": "docs",
+        "label": "Điều phối",
+        "seed": 53
+      }
+    },
+    {
+      "id": "khach-hang",
+      "name": "Bàn khách hàng",
+      "color": "#5b5248",
+      "x": -16.1,
+      "z": -0.6,
+      "w": 3.6,
+      "d": 6.6,
+      "style": {
+        "shape": "room",
+        "screenTheme": "docs",
+        "label": "Khách hàng",
+        "seed": 67
+      }
+    },
+    {
+      "id": "san-xuat-phim",
+      "name": "Sản xuất phim",
+      "color": "#4a4f5c",
+      "x": 16.1,
+      "z": -0.6,
+      "w": 3.6,
+      "d": 6.6,
+      "style": {
+        "shape": "room",
+        "screenTheme": "video",
+        "label": "Phim",
+        "seed": 79
+      }
+    },
+    {
+      "id": "ca-phe",
+      "name": "Cà phê",
+      "color": "#5a3f2e",
+      "x": -9.4,
+      "z": 11.35,
+      "w": 11.4,
+      "d": 4,
+      "style": {
+        "shape": "cafe",
+        "label": "Cà phê",
+        "seed": 7
+      }
+    },
+    {
+      "id": "giai-tri",
+      "name": "Giải trí",
+      "color": "#2c2f55",
+      "x": 9.4,
+      "z": 11.35,
+      "w": 11.4,
+      "d": 4,
+      "style": {
+        "shape": "game",
+        "label": "Giải trí",
+        "seed": 8
+      }
+    }
+  ]
+}

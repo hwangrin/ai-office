@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "sourceCheckpoint": "accepted Work Status V1 staging package, 2026-10-30",
+  "assetCount": 19,
+  "policy": "Binary assets remain owner-provided local build inputs. Verify exact SHA-256 before building; never commit raw Mixamo or unverified Hazel binaries to the public repository.",
+  "assets": [
+    {
+      "path": "public/models/people/characters/joe.glb",
+      "role": "general-character",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 872188,
+      "sha256": "164ac9832bc08fc406b45eb00beba23825bbff88c313c3f9d8bb535599b67df7"
+    },
+    {
+      "path": "public/models/people/characters/josh.glb",
+      "role": "general-character",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 811812,
+      "sha256": "b597700d085a49b6d2f8168903eaa20c008e316f4a59f8890eee0a245bf782da"
+    },
+    {
+      "path": "public/models/people/characters/lewis.glb",
+      "role": "general-character",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 635948,
+      "sha256": "3674e06944afb61a26402a1e808a18cc6ec4bdb68bda24d0bd36c8cda2a7106e"
+    },
+    {
+      "path": "public/models/people/characters/louise.glb",
+      "role": "general-character",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 754368,
+      "sha256": "f92d1335fe916268dc847b1f717e51736ea8eff30b49ba8e738349c7bc41aff8"
+    },
+    {
+      "path": "public/models/people/characters/martha.glb",
+      "role": "general-character",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 792620,
+      "sha256": "663b2475e1b95d2ab0888f9d93c0c36ddaaf3abdb9eb64f23d44464036690efc"
+    },
+    {
+      "path": "public/models/people/characters/remy.glb",
+      "role": "general-character",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 715424,
+      "sha256": "b4d0c0e104a10576468e66f4219475920bf4625cb2f374c2e7f0440ca073138e"
+    },
+    {
+      "path": "public/models/people/characters/sophie.glb",
+      "role": "general-character",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 788212,
+      "sha256": "8889e4e0f3643512c5e0af8a17cc569d2e15a1ac9a7faa0711afbf9a06ed947d"
+    },
+    {
+      "path": "public/models/people/characters/suzie.glb",
+      "role": "general-character",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 727976,
+      "sha256": "01f6b86ac35ba5f8f25265b2fba542de9a9873fb2446728c80a5d83967646544"
+    },
+    {
+      "path": "public/models/people/animations/beckon.glb",
+      "role": "shared-animation",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 50048,
+      "sha256": "4ba420f9e147bf5ba3918d8c195ed2d57cca59c0b8726517d848f6623548533f"
+    },
+    {
+      "path": "public/models/people/animations/disbelief.glb",
+      "role": "shared-animation",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 85184,
+      "sha256": "b73007dd16983330417f6c8a7e6ab60044668ff789721c0a1c393990516ccabc"
+    },
+    {
+      "path": "public/models/people/animations/idle.glb",
+      "role": "shared-animation",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 35040,
+      "sha256": "473c3ba515ce4898948a469a70bafe3ccfcf7785abebf2a6409d7872a97a312a"
+    },
+    {
+      "path": "public/models/people/animations/impatient.glb",
+      "role": "shared-animation",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 125032,
+      "sha256": "785fd341d4653b2baa6aaebe879517240d99ae81322b1185f23b955759a379e9"
+    },
+    {
+      "path": "public/models/people/animations/look.glb",
+      "role": "shared-animation",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 39948,
+      "sha256": "ea3640a0266988abd116af9f57a780a84a135010bf915ca87c80f8cb0a4b50a3"
+    },
+    {
+      "path": "public/models/people/animations/run.glb",
+      "role": "shared-animation",
+      "source": "three.js examples Xbot, owner-acquired",
+      "license": "three.js MIT license; raw binary intentionally excluded from public Git",
+      "bytes": 43192,
+      "sha256": "78a9b61e5e2ac973253b9a007bebad5844609310376f5c6818ef2f0c0120abd4"
+    },
+    {
+      "path": "public/models/people/animations/talking.glb",
+      "role": "shared-animation",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 335348,
+      "sha256": "78a9ed53d382fac3c1ee7649b51e8c2035ba2544154a77dca7efdfd4424f60d9"
+    },
+    {
+      "path": "public/models/people/animations/thumbsup.glb",
+      "role": "shared-animation",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 72008,
+      "sha256": "7fb82101807b5afe7da584825da69c0ae5c8e9f2e9649117625542dec82d245d"
+    },
+    {
+      "path": "public/models/people/animations/typing.glb",
+      "role": "shared-animation",
+      "source": "Adobe Mixamo, owner-acquired",
+      "license": "Project use per Adobe Mixamo terms; raw binary intentionally excluded from public Git",
+      "bytes": 248356,
+      "sha256": "f9b9e84b0384701272b09c401a9ceb80968d10a3c1be4a9da3145c086949ec74"
+    },
+    {
+      "path": "public/models/people/animations/walk.glb",
+      "role": "shared-animation",
+      "source": "three.js examples Xbot, owner-acquired",
+      "license": "three.js MIT license; raw binary intentionally excluded from public Git",
+      "bytes": 48776,
+      "sha256": "91f3d64de4d01f167f70010155f814c0da428d2307b252351f56e47065196082"
+    },
+    {
+      "path": "public/models/kyan-v1/hazel-hair-original.glb",
+      "role": "exclusive-kyan-hair-mesh",
+      "source": "Owner-provided MPFB Hazel hair mesh",
+      "license": "Redistribution terms not attested in this source consolidation; retained as a private build input",
+      "bytes": 3536704,
+      "sha256": "45651bf408b7705b980f2bddef34bd824f80a04842bc75f2d7ab235c1c6abeae"
+    }
+  ],
+  "runtimeFiles": [
+    {
+      "path": "public/models/people/people.json",
+      "role": "public-asset-catalog",
+      "sha256": "f2c9c44e6345905a63b752973a6774c0cdddad72ad52bd117f83c34a7d4634e8",
+      "bytes": 2144
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "_ghichu": "Sinh bởi tools/mixamo/build.mjs. Nhân vật & animation từ Mixamo (Adobe) — không phân phối lại file này. refHipsY = độ cao hông của rig dùng khi xuất animation.",
+  "targetHeight": 1.74,
+  "characters": [
+    {
+      "id": "joe",
+      "file": "characters/joe.glb"
+    },
+    {
+      "id": "josh",
+      "file": "characters/josh.glb"
+    },
+    {
+      "id": "lewis",
+      "file": "characters/lewis.glb"
+    },
+    {
+      "id": "louise",
+      "file": "characters/louise.glb"
+    },
+    {
+      "id": "martha",
+      "file": "characters/martha.glb"
+    },
+    {
+      "id": "remy",
+      "file": "characters/remy.glb"
+    },
+    {
+      "id": "sophie",
+      "file": "characters/sophie.glb"
+    },
+    {
+      "id": "suzie",
+      "file": "characters/suzie.glb"
+    }
+  ],
+  "animations": {
+    "beckon": {
+      "file": "animations/beckon.glb",
+      "refHipsY": 0.9867143034935
+    },
+    "disbelief": {
+      "file": "animations/disbelief.glb",
+      "refHipsY": 0.9867143034935
+    },
+    "idle": {
+      "file": "animations/idle.glb",
+      "refHipsY": 0.9867143034935
+    },
+    "impatient": {
+      "file": "animations/impatient.glb",
+      "refHipsY": 0.9867143034935
+    },
+    "look": {
+      "file": "animations/look.glb",
+      "refHipsY": 0.9867143034935
+    },
+    "talking": {
+      "file": "animations/talking.glb",
+      "refHipsY": 0.9867143034935
+    },
+    "thumbsup": {
+      "file": "animations/thumbsup.glb",
+      "refHipsY": 0.9867143034935
+    },
+    "typing": {
+      "file": "animations/typing.glb",
+      "refHipsY": 0.9867143034935
+    },
+    "walk": {
+      "file": "animations/walk.glb",
+      "refHipsY": 103.99147033691406
+    },
+    "run": {
+      "file": "animations/run.glb",
+      "refHipsY": 103.99147033691406
+    }
+  },
+  "states": {
+    "working": "typing",
+    "workingLounge": "talking",
+    "idle": [
+      "idle",
+      "look"
+    ],
+    "idleCafe": [
+      "talking",
+      "idle",
+      "look"
+    ],
+    "gaming": "typing",
+    "queued": "impatient",
+    "waiting": "beckon",
+    "error": "disbelief",
+    "offline": "idle",
+    "done": "thumbsup"
+  }
+}

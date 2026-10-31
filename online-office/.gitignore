@@ -1,0 +1,13 @@
+/node_modules/
+/dist/
+/qa/
+/inspection/
+/validation/
+/.env
+/.env.*
+!/public/js/agent-display-catalog.example.json
+/javis-layout.json
+/public/js/agent-display-catalog.json
+/public/models/**/*.glb
+/public/models/**/*.fbx
+/public/models/**/*.blend
