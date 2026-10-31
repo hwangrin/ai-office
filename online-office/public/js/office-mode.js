@@ -1,0 +1,3 @@
+// Initial cloud release is LIVE only; local DEMO remains available on 4810.
+export const modeReady=(async()=>{const token=document.querySelector('meta[name="office-token"]').content;const r=await fetch('/office/api/connection-mode',{headers:{'X-Office-Token':token},cache:'no-store'});if(!r.ok)throw Error('connection_unavailable');const data=await r.json();if(data.mode!=='LIVE_NATIVE_PARTNERS')throw Error('live_required');const u=new URL(location.href);u.searchParams.delete('native');u.searchParams.set('mode','live');history.replaceState(history.state,'',u);return data;})();
+export async function switchOfficeMode(){throw Error('cloud_live_only');}

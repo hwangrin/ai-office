@@ -1,0 +1,32 @@
+services:
+  office:
+    build: .
+    image: ${OFFICE_IMAGE:-ai-office:v1}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    environment:
+      OFFICE_START: "1"
+      OFFICE_PUBLIC_ORIGIN: ${OFFICE_PUBLIC_ORIGIN:?set the existing Javis origin}
+      OFFICE_JAVIS_ORIGIN: ${OFFICE_JAVIS_ORIGIN:?set the existing Javis origin}
+      OFFICE_MOUNT_PATH: ${OFFICE_MOUNT_PATH:-/office}
+    expose:
+      - "4810"
+    mem_limit: 384m
+    cpus: 0.5
+    networks:
+      - javis_isolated
+      - javis_outbound
+
+networks:
+  javis_isolated:
+    external: true
+    name: ${OFFICE_ISOLATED_NETWORK:?set the existing isolated network name}
+  javis_outbound:
+    external: true
+    name: ${OFFICE_OUTBOUND_NETWORK:?set the existing outbound network name}

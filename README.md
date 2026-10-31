@@ -21,6 +21,8 @@ Phiên là phiên thật, mở lại được trong terminal bằng `claude --re
 > Assign briefs, let agents delegate to each other, approve tool permissions, and watch it all on an isometric office floor.
 > The UI is in Vietnamese; the code comments are Vietnamese too. Requires Node ≥ 22.13. `npm install && npm start`.
 
+> **Standalone online AI Office V1:** the accepted same-origin Javis Native Partners and registered Jobs application is maintained in [`online-office/`](online-office/README.md). Its owner-provided character binaries, agent identity catalog and Brain-specific layout remain local build inputs.
+
 ## Cài đặt
 
 Yêu cầu **Node.js ≥ 22.13** (dùng `node:sqlite` có sẵn, không cần build native) và ít nhất một trong các thứ sau:

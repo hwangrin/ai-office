@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 2,
+  "entries": [],
+  "refreshWorkflow": "Use the authorized local metadata snapshot and the refresh workflow documented in AGENT-LOCALIZATION-WORKFLOW.md."
+}

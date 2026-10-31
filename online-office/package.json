@@ -1,0 +1,27 @@
+{
+  "name": "ai-office-standalone",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "esbuild src/online.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/online.js",
+    "verify:assets": "node tools/verify-release-assets.mjs",
+    "verify:catalog": "node tools/verify-private-agent-catalog.mjs",
+    "verify:release": "npm run verify:assets && npm run verify:catalog",
+    "test": "node --test tests/work-policy.test.mjs tests/work-transition.integration.test.mjs tests/scene-roster.test.mjs tests/office-path.test.mjs tests/cloud-roster.test.mjs",
+    "start": "node dist/online.js"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "ws": "8.22.0",
+    "three": "0.170.0",
+    "@fontsource/be-vietnam-pro": "5.3.0",
+    "@fontsource/noto-serif": "5.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

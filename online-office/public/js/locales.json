@@ -1,0 +1,1054 @@
+[
+  [
+    "Virtual Office",
+    "Văn phòng ảo"
+  ],
+  [
+    "Opening the office...",
+    "Đang mở cửa văn phòng…"
+  ],
+  [
+    "Agency office · Live",
+    "Văn phòng agency · Trực tiếp"
+  ],
+  [
+    "Connecting...",
+    "Đang kết nối…"
+  ],
+  [
+    "Only desks with observed work light up.",
+    "Đèn chỉ sáng ở bàn có việc thật."
+  ],
+  [
+    "Dispatch brief",
+    "Giao yêu cầu"
+  ],
+  [
+    "+ Employee",
+    "+ Nhân viên"
+  ],
+  [
+    "Attach session",
+    "Kết nối phiên"
+  ],
+  [
+    "Departments",
+    "Phòng ban"
+  ],
+  [
+    "Costs",
+    "Chi phí"
+  ],
+  [
+    "Overview",
+    "Toàn cảnh"
+  ],
+  [
+    "Quality",
+    "Chất lượng"
+  ],
+  [
+    "Focus",
+    "Xem gần"
+  ],
+  [
+    "Stop",
+    "Dừng"
+  ],
+  [
+    "New session",
+    "Phiên mới"
+  ],
+  [
+    "Edit",
+    "Sửa"
+  ],
+  [
+    "Delete",
+    "Xoá"
+  ],
+  [
+    "Close",
+    "Đóng"
+  ],
+  [
+    "Dispatch",
+    "Giao việc"
+  ],
+  [
+    "Drop files to attach",
+    "Thả tệp vào để đính kèm"
+  ],
+  [
+    "Assign a task... paste images with Ctrl+V or drop files (Ctrl+Enter to send)",
+    "Giao việc… dán ảnh Ctrl+V hoặc kéo thả tệp (Ctrl+Enter để gửi)"
+  ],
+  [
+    "Drag to rotate · scroll to zoom · select an employee for details · double-click to focus",
+    "Kéo để xoay · cuộn để phóng to · bấm vào nhân viên để xem chi tiết · nhấp đúp để đến gần"
+  ],
+  [
+    "Attach images / files - or paste images (Ctrl+V), drop files here",
+    "Đính kèm ảnh / tệp - hoặc dán ảnh (Ctrl+V), kéo thả tệp vào đây"
+  ],
+  [
+    "Read-Only Observer",
+    "Quan sát viên chỉ đọc"
+  ],
+  [
+    "Idle",
+    "Đang nghỉ"
+  ],
+  [
+    "Queued",
+    "Đang chờ"
+  ],
+  [
+    "Working",
+    "Đang làm việc"
+  ],
+  [
+    "Waiting Review",
+    "Chờ phê duyệt"
+  ],
+  [
+    "Error",
+    "Lỗi"
+  ],
+  [
+    "Offline",
+    "Ngoại tuyến"
+  ],
+  [
+    "Unknown",
+    "Chưa xác định"
+  ],
+  [
+    "Cluster of desks",
+    "Khu cụm bàn"
+  ],
+  [
+    "Central lounge",
+    "Khu sinh hoạt chung"
+  ],
+  [
+    "Glass meeting room",
+    "Phòng họp kính"
+  ],
+  [
+    "Cafe (break area)",
+    "Khu cà phê (giờ nghỉ)"
+  ],
+  [
+    "Recreation (break area)",
+    "Khu giải trí (giờ nghỉ)"
+  ],
+  [
+    "Documents",
+    "Văn bản"
+  ],
+  [
+    "Design",
+    "Thiết kế"
+  ],
+  [
+    "Charts",
+    "Biểu đồ"
+  ],
+  [
+    "Social media",
+    "Mạng xã hội"
+  ],
+  [
+    "Video editing",
+    "Dựng phim"
+  ],
+  [
+    "just now",
+    "vừa xong"
+  ],
+  [
+    " minutes ago",
+    " phút trước"
+  ],
+  [
+    " hours ago",
+    " giờ trước"
+  ],
+  [
+    " days ago",
+    " ngày trước"
+  ],
+  [
+    "uploading...",
+    "đang tải lên…"
+  ],
+  [
+    "upload failed",
+    "lỗi tải lên"
+  ],
+  [
+    "Remove file",
+    "Bỏ tệp"
+  ],
+  [
+    "Maximum ",
+    "Tối đa "
+  ],
+  [
+    " files per task",
+    " tệp mỗi việc"
+  ],
+  [
+    " is too large (maximum 25MB)",
+    " quá lớn (tối đa 25MB)"
+  ],
+  [
+    "Could not upload ",
+    "Không tải lên được "
+  ],
+  [
+    "Your device is slow - render quality changed to ",
+    "Đã giảm chất lượng hiển thị để cảnh chạy mượt hơn: "
+  ],
+  [
+    "Labels: ",
+    "Nhãn: "
+  ],
+  [
+    "Always",
+    "Luôn hiện"
+  ],
+  [
+    "Hover",
+    "Khi trỏ chuột"
+  ],
+  [
+    "Off",
+    "Tắt"
+  ],
+  [
+    "Day Override",
+    "Giả lập ban ngày"
+  ],
+  [
+    "Night Override",
+    "Giả lập ban đêm"
+  ],
+  [
+    "Override",
+    "Giả lập"
+  ],
+  [
+    "Day",
+    "Ban ngày"
+  ],
+  [
+    "Night",
+    "Ban đêm"
+  ],
+  [
+    "READ-ONLY",
+    "CHỈ ĐỌC"
+  ],
+  [
+    "DEMO / LOCAL SAMPLE",
+    "DEMO / DỮ LIỆU MẪU"
+  ],
+  [
+    "DISCONNECTED · Activity UNKNOWN",
+    "NGẮT KẾT NỐI · Hoạt động CHƯA XÁC ĐỊNH"
+  ],
+  [
+    "DEMO scenario: local sample activity",
+    "Kịch bản DEMO: hoạt động mẫu cục bộ"
+  ],
+  [
+    "Local sample employees are DEMO. Live roster, tasks, approvals and usage are not connected.",
+    "Đây là nhân viên mẫu. Chưa kết nối dữ liệu nhân viên, công việc, phê duyệt và mức dùng từ Javis."
+  ],
+  [
+    "Activity: UNKNOWN · Usage: UNKNOWN · Local samples: ",
+    "Hoạt động: CHƯA XÁC ĐỊNH · Mức dùng: CHƯA XÁC ĐỊNH · Số mẫu: "
+  ],
+  [
+    "Awaiting Review",
+    "Đang chờ duyệt"
+  ],
+  [
+    "Active",
+    "Đang hoạt động"
+  ],
+  [
+    "The office is resting",
+    "Văn phòng đang nghỉ"
+  ],
+  [
+    "No employees yet",
+    "Chưa có nhân viên"
+  ],
+  [
+    "Dispatch a brief to begin. Only desks with observed work light up.",
+    "Giao brief để cả nhà bắt đầu làm việc. Đèn chỉ sáng ở bàn có việc thật."
+  ],
+  [
+    "Click “+ Employee” to recruit your first employee.",
+    "Bấm “+ Nhân viên” để tuyển người đầu tiên."
+  ],
+  [
+    "Today ",
+    "Hôm nay "
+  ],
+  [
+    " working",
+    " đang làm"
+  ],
+  [
+    " queued",
+    " đang chờ"
+  ],
+  [
+    " total actors",
+    " tổng nhân vật"
+  ],
+  [
+    " at Cafe",
+    " tại Cà phê"
+  ],
+  [
+    " at Recreation",
+    " tại Giải trí"
+  ],
+  [
+    "Temporary Subagent",
+    "Agent con tạm thời"
+  ],
+  [
+    "Persistent Agent",
+    "Agent thường trực"
+  ],
+  [
+    "Parent: ",
+    "Cấp trên: "
+  ],
+  [
+    "permissions: ",
+    "quyền: "
+  ],
+  [
+    "session ",
+    "phiên "
+  ],
+  [
+    " tasks queued",
+    " việc chờ"
+  ],
+  [
+    "Today:",
+    "Hôm nay:"
+  ],
+  [
+    "Input tokens ",
+    "Token vào "
+  ],
+  [
+    " · output ",
+    " · ra "
+  ],
+  [
+    " · unpriced",
+    " · chưa có giá"
+  ],
+  [
+    "Request permission: ",
+    "Xin quyền: "
+  ],
+  [
+    "Allow",
+    "Cho phép"
+  ],
+  [
+    "Deny",
+    "Từ chối"
+  ],
+  [
+    "DEMO approval · Read-only",
+    "Phê duyệt DEMO · Chỉ đọc"
+  ],
+  [
+    "Wait for uploads to finish before dispatching",
+    "Vui lòng chờ tải tệp xong trước khi giao việc."
+  ],
+  [
+    "Stopped",
+    "Đã dừng"
+  ],
+  [
+    ", cancelled ",
+    ", huỷ "
+  ],
+  [
+    "Start a new session? The employee will forget the previous context.",
+    "Bắt đầu phiên mới? Nhân viên sẽ quên ngữ cảnh cũ."
+  ],
+  [
+    "Remove ",
+    "Xoá "
+  ],
+  [
+    " from the office?",
+    " khỏi văn phòng?"
+  ],
+  [
+    "Edit employee",
+    "Sửa nhân viên"
+  ],
+  [
+    "Recruit employee",
+    "Thêm nhân viên"
+  ],
+  [
+    "Display name",
+    "Tên hiển thị"
+  ],
+  [
+    "Department",
+    "Phòng ban"
+  ],
+  [
+    "Role",
+    "Vai trò"
+  ],
+  [
+    "Example: Write Korean Naver copy",
+    "VD: Viết copy Naver tiếng Hàn"
+  ],
+  [
+    "Employee type",
+    "Loại nhân viên"
+  ],
+  [
+    "Model (blank = default)",
+    "Mô hình (để trống để dùng mặc định)"
+  ],
+  [
+    "Working directory (cwd)",
+    "Thư mục làm việc (cwd)"
+  ],
+  [
+    "C:\\project\\web or /home/you/project",
+    "C:\\du-an\\web hoặc /home/ban/du-an"
+  ],
+  [
+    "Agents should only read/write in this directory.",
+    "Nhân viên chỉ nên đọc và ghi trong thư mục này."
+  ],
+  [
+    "Permissions",
+    "Quyền"
+  ],
+  [
+    "Ask before editing files / running commands",
+    "Hỏi trước khi sửa file / chạy lệnh"
+  ],
+  [
+    "Edit files automatically, ask before commands",
+    "Tự sửa file, hỏi khi chạy lệnh"
+  ],
+  [
+    "Read & plan only",
+    "Chỉ đọc & lập kế hoạch"
+  ],
+  [
+    "⚠ Full access, no prompts",
+    "⚠ Toàn quyền, không hỏi"
+  ],
+  [
+    "(JSONL file path)",
+    "(đường dẫn file JSONL)"
+  ],
+  [
+    "(blank = new session)",
+    "(bỏ trống = phiên mới)"
+  ],
+  [
+    "Custom instructions (system prompt)",
+    "Hướng dẫn riêng (system prompt)"
+  ],
+  [
+    "Cancel",
+    "Huỷ"
+  ],
+  [
+    "Save",
+    "Lưu"
+  ],
+  [
+    "Recruit",
+    "Thêm nhân viên"
+  ],
+  [
+    "Full access: the agent can run ANY command on your computer without asking. Are you sure?",
+    "Toàn quyền: agent có thể chạy MỌI lệnh trên máy bạn mà không hỏi. Chắc chắn?"
+  ],
+  [
+    "Attach existing session",
+    "Kết nối phiên có sẵn"
+  ],
+  [
+    "Observe",
+    "Quan sát"
+  ],
+  [
+    "Take over",
+    "Tiếp quản"
+  ],
+  [
+    "No sessions found.",
+    "Không tìm thấy phiên nào."
+  ],
+  [
+    "(no preview)",
+    "(không có xem trước)"
+  ],
+  [
+    "Terminal session",
+    "Phiên terminal"
+  ],
+  [
+    "Takeover session",
+    "Phiên tiếp quản"
+  ],
+  [
+    "No employee can receive a task yet",
+    "Chưa có nhân viên nào nhận việc được"
+  ],
+  [
+    "Recipient",
+    "Người nhận việc"
+  ],
+  [
+    "Attach files",
+    "Đính kèm tệp"
+  ],
+  [
+    "Floor spans x −18…18, z −14…14 (metres). Coordinates are the area centre.",
+    "Sàn rộng x −18…18, z −14…14 (mét). Toạ độ là tâm khu vực."
+  ],
+  [
+    "Select department",
+    "Chọn phòng"
+  ],
+  [
+    "+ Add department",
+    "+ Thêm phòng mới"
+  ],
+  [
+    "Identifier (ASCII)",
+    "Mã (không dấu)"
+  ],
+  [
+    "Name",
+    "Tên"
+  ],
+  [
+    "Floor label",
+    "Chữ trên sàn"
+  ],
+  [
+    "Area style",
+    "Kiểu khu vực"
+  ],
+  [
+    "Screen display",
+    "Màn hình hiển thị"
+  ],
+  [
+    "Centre x",
+    "Tâm x"
+  ],
+  [
+    "Centre z",
+    "Tâm z"
+  ],
+  [
+    "Width",
+    "Rộng"
+  ],
+  [
+    "Depth",
+    "Sâu"
+  ],
+  [
+    "Rug colour",
+    "Màu thảm"
+  ],
+  [
+    "Department saved",
+    "Đã lưu phòng ban"
+  ],
+  [
+    "Today",
+    "Hôm nay"
+  ],
+  [
+    "7 days",
+    "7 ngày"
+  ],
+  [
+    "30 days",
+    "30 ngày"
+  ],
+  [
+    "All",
+    "Tất cả"
+  ],
+  [
+    " (deleted)",
+    " (đã xoá)"
+  ],
+  [
+    "+ unpriced portion",
+    "+ phần chưa có giá"
+  ],
+  [
+    "unpriced",
+    "chưa có giá"
+  ],
+  [
+    " tasks",
+    " công việc"
+  ],
+  [
+    "Total tokens",
+    "Tổng token"
+  ],
+  [
+    "Estimated cost",
+    "Chi phí ước tính"
+  ],
+  [
+    "Task count",
+    "Số công việc"
+  ],
+  [
+    "Employee",
+    "Nhân viên"
+  ],
+  [
+    "Input",
+    "Đầu vào"
+  ],
+  [
+    "Output",
+    "Đầu ra"
+  ],
+  [
+    "Cost",
+    "Chi phí"
+  ],
+  [
+    "No tasks in this period.",
+    "Chưa có việc nào trong khoảng thời gian này."
+  ],
+  [
+    "Tokens &amp; costs",
+    "Token &amp; chi phí"
+  ],
+  [
+    "Loading...",
+    "Đang tải…"
+  ],
+  [
+    "Disconnected, reconnecting...",
+    "Mất kết nối, đang thử lại…"
+  ],
+  [
+    " requests permission to use ",
+    " xin quyền dùng "
+  ],
+  [
+    "Application modes",
+    "Chế độ ứng dụng"
+  ],
+  [
+    "Current mode: ",
+    "Chế độ hiện tại: "
+  ],
+  [
+    "Mode is fixed on the server. Navigation cannot unlock Viewer mutations.",
+    "Chế độ được cố định ở máy chủ. Điều hướng không thể mở quyền ghi cho Viewer."
+  ],
+  [
+    "Studio worker execution stays HELD until OFFICE_EXECUTION_ENABLED=1 is explicitly configured. The original validated replica remains at localhost:4800.",
+    "Worker Studio giữ trạng thái HELD cho tới khi cấu hình rõ OFFICE_EXECUTION_ENABLED=1. Bản gốc đã nghiệm thu vẫn ở localhost:4800."
+  ],
+  [
+    "Employees",
+    "Nhân viên"
+  ],
+  [
+    "Filter employees",
+    "Lọc nhân viên"
+  ],
+  [
+    "All statuses",
+    "Tất cả trạng thái"
+  ],
+  [
+    "All departments",
+    "Tất cả phòng ban"
+  ],
+  [
+    "Inspect",
+    "Xem chi tiết"
+  ],
+  [
+    "No matching employees.",
+    "Không tìm thấy nhân viên phù hợp."
+  ],
+  [
+    "Task history",
+    "Lịch sử công việc"
+  ],
+  [
+    "DEMO history only. Live task coverage is UNKNOWN.",
+    "Chỉ có lịch sử DEMO. Độ phủ công việc thật CHƯA XÁC ĐỊNH."
+  ],
+  [
+    "No observed task history.",
+    "Chưa ghi nhận lịch sử công việc."
+  ],
+  [
+    "Opt-in DEMO scenarios",
+    "Kịch bản DEMO tự chọn"
+  ],
+  [
+    "These samples do not run agents or represent live Javis activity.",
+    "Các mẫu này không chạy agent và không đại diện cho hoạt động Javis thật."
+  ],
+  [
+    "Active subagent",
+    "Agent con đang làm"
+  ],
+  [
+    "Disconnect / reset",
+    "Ngắt kết nối / đặt lại"
+  ],
+  [
+    "Usage: UNKNOWN",
+    "Chưa có dữ liệu mức dùng"
+  ],
+  [
+    "Live Javis usage and cost data are not connected. No observed totals are available.",
+    "Chưa kết nối mức dùng và chi phí Javis thật. Chưa có tổng số được ghi nhận."
+  ],
+  [
+    "High",
+    "Cao"
+  ],
+  [
+    "Medium",
+    "Vừa"
+  ],
+  [
+    "Low",
+    "Thấp"
+  ],
+  [
+    "Inviting employees into the office...",
+    "Đang mời nhân viên vào văn phòng…"
+  ],
+  [
+    "Loading characters",
+    "Đang tải nhân vật"
+  ],
+  [
+    "Loading animations",
+    "Đang tải hoạt ảnh"
+  ],
+  [
+    "Building the office",
+    "Đang dựng văn phòng"
+  ],
+  [
+    "Local wall clock & Day/Night environment",
+    "Đồng hồ cục bộ và môi trường ngày/đêm"
+  ],
+  [
+    "Toggle floating agent name & title labels (Always / Hover / Off)",
+    "Đổi nhãn tên và chức danh nổi (Luôn hiện / Khi trỏ chuột / Tắt)"
+  ],
+  [
+    "JAVIS WORKFORCE · READ-ONLY VIEWER",
+    "NHÂN SỰ JAVIS · CHỈ ĐỌC"
+  ],
+  [
+    "LIVE: ",
+    "TRỰC TIẾP: "
+  ],
+  [
+    "MOCK: ",
+    "MẪU: "
+  ],
+  [
+    "DISCONNECTED",
+    "NGẮT KẾT NỐI"
+  ],
+  [
+    "UNKNOWN",
+    "CHƯA XÁC ĐỊNH"
+  ],
+  [
+    "Synced 6 persistent Kyan roster profiles (idle baseline; roster presence does not imply active work).",
+    "Đồng bộ 6 hồ sơ mẫu Kyan (mẫu nghỉ; có trong danh sách không chứng minh đang làm việc)."
+  ],
+  [
+    "Live Javis endpoint GET /agents?brain=Kyan&prompt=0&system=1 returned 401 Unauthorized. Held at authentication boundary.",
+    "Điểm truy cập Javis GET /agents?brain=Kyan&prompt=0&system=1 trả 401 Unauthorized. Giữ nguyên ranh giới xác thực."
+  ],
+  [
+    "Tokens & costs",
+    "Token & chi phí"
+  ],
+  [
+    ": only observe your existing terminal session, safely. ",
+    ": chỉ xem phiên bạn đang chạy trong terminal, an toàn. "
+  ],
+  [
+    ": resume the session and dispatch work - close the terminal session first to avoid competing writes.",
+    ": tiếp tục phiên và giao công việc. Hãy đóng phiên trong terminal trước để tránh ghi đồng thời."
+  ],
+  [
+    "Example: Draft 3 Naver Power Content ads for a resort in Phu Quoc, targeting Korean visitors aged 30-45, with visual ideas. Paste reference images with Ctrl+V or drop files here.",
+    "VD: Lên 3 mẫu quảng cáo Naver Power Content cho resort ở Phú Quốc, khách Hàn 30-45 tuổi, kèm gợi ý hình ảnh. Dán ảnh tham khảo bằng Ctrl+V hoặc kéo thả tệp vào đây."
+  ],
+  [
+    ": Claude Code reports cost at API prices. For Pro/Max (OAuth), this is an ",
+    ": chi phí do Claude Code tự tính theo giá API. Nếu dùng gói Pro/Max (token OAuth) thì đây là "
+  ],
+  [
+    "equivalent value",
+    "giá trị tương đương"
+  ],
+  [
+    " rather than a charge. Use it to compare usage across employees.",
+    ", không phải khoản phí bị trừ. Dùng số này để so sánh mức sử dụng giữa các nhân viên."
+  ],
+  [
+    ": token counts only; add prices to ",
+    ": chỉ có số token; muốn ra tiền thì điền giá vào "
+  ],
+  [
+    " (USD per million tokens). Add ",
+    " (USD / 1 triệu token). Thêm "
+  ],
+  [
+    " to display VND.",
+    " để hiện VNĐ."
+  ],
+  [
+    "• Cache contains cached read/write tokens and usually costs less than ordinary input tokens.",
+    "• Cache gồm token đọc và ghi bộ nhớ đệm; chi phí phụ thuộc bảng giá của model."
+  ],
+  [
+    "Studio worker execution is HELD. Enable OFFICE_EXECUTION_ENABLED=1 explicitly to dispatch tasks.",
+    "Thực thi worker Studio đang HELD. Cấu hình rõ OFFICE_EXECUTION_ENABLED=1 để cho phép giao việc."
+  ],
+  [
+    "Sai token",
+    "Invalid token"
+  ],
+  [
+    "Host is not allowed",
+    "Host không được phép"
+  ],
+  [
+    "This file is no longer available",
+    "Không còn tệp này"
+  ],
+  [
+    "Department does not exist",
+    "Phòng ban không tồn tại"
+  ],
+  [
+    "Employee not found",
+    "Không tìm thấy nhân viên"
+  ],
+  [
+    "Task content is empty",
+    "Vui lòng nhập nội dung công việc."
+  ],
+  [
+    "Read-only Javis viewer mode: mutations and task execution are disabled. Javis remains sole orchestrator.",
+    "Chế độ Viewer chỉ đọc: chặn thay đổi dữ liệu và thực thi tác vụ. Javis là hệ thống điều phối duy nhất."
+  ],
+  [
+    "Session / thread ID (blank = new session)",
+    "ID phiên / luồng (để trống để tạo phiên mới)"
+  ],
+  [
+    "Session / thread ID (JSONL file path)",
+    "ID phiên / luồng (đường dẫn tệp JSONL)"
+  ],
+  [
+    "Original Studio · LOCAL",
+    "Studio gốc · CỤC BỘ"
+  ],
+  [
+    "STUDIO WORKERS HELD",
+    "THỰC THI STUDIO ĐANG TẠM DỪNG"
+  ],
+  [
+    "Task execution is disabled until explicitly enabled. Local data only.",
+    "Chưa cho phép thực thi tác vụ. Chỉ dùng dữ liệu cục bộ."
+  ],
+  [
+    "Live bridge is not configured. A previous unauthenticated Javis roster probe returned 401 Unauthorized. No live polling or task coverage.",
+    "Chưa cấu hình cầu nối trực tiếp. Lần đọc danh sách Javis không xác thực trước đó trả 401 Unauthorized. Chưa thăm dò dữ liệu hay bao phủ công việc thật."
+  ],
+  [
+    "Waiting",
+    "Chờ phê duyệt"
+  ],
+  [
+    "Completed",
+    "Hoàn thành"
+  ],
+  [
+    "Failed",
+    "Thất bại"
+  ],
+  [
+    "Cancelled",
+    "Đã huỷ"
+  ],
+  [
+    "Code",
+    "Lập trình"
+  ],
+  [
+    "Cache",
+    "Bộ nhớ đệm"
+  ],
+  [
+    "Javis Live Viewer",
+    "Trình xem Javis"
+  ],
+  [
+    "Original Studio",
+    "Studio gốc"
+  ],
+  [
+    "subagent",
+    "agent con"
+  ],
+  [
+    "Persistent",
+    "Thường trực"
+  ],
+  [
+    "DEMO",
+    "DEMO"
+  ],
+  [
+    "Scanning ",
+    "Đang quét "
+  ],
+  [
+    "/.claude/projects and ",
+    "/.claude/projects và "
+  ],
+  [
+    "/.codex/sessions...",
+    "/.codex/sessions…"
+  ],
+  [
+    "Invalid token",
+    "Thông tin xác thực không hợp lệ"
+  ],
+  [
+    "Preparing the office...",
+    "Đang dọn văn phòng…"
+  ],
+  [
+    " events",
+    " sự kiện"
+  ],
+  [
+    "Coordinate AI Office 3D read-only visualization milestone",
+    "Điều phối mốc phát triển trình xem AI Office 3D chỉ đọc"
+  ],
+  [
+    "Javis Core started task: Coordinate AI Office 3D read-only visualization milestone",
+    "Javis Core bắt đầu điều phối mốc phát triển trình xem AI Office 3D chỉ đọc"
+  ],
+  [
+    "Verify Three.js label toggle, day/night cycle, and Mixamo hashes",
+    "Kiểm tra nhãn tên, chu kỳ ngày/đêm và mã băm Mixamo"
+  ],
+  [
+    "Spawned temporary subagent Scene Verifier under Javis Core",
+    "Đã tạo agent con mẫu Scene Verifier trực thuộc Javis Core"
+  ],
+  [
+    "Auditing 18 Mixamo GLB hashes and WebGL canvas state",
+    "Kiểm tra mã băm 18 tệp Mixamo GLB và trạng thái cảnh WebGL"
+  ],
+  [
+    "Subagent Scene Verifier is auditing Mixamo GLB hashes and WebGL canvas state",
+    "Agent con mẫu Scene Verifier đang kiểm tra tài sản Mixamo và cảnh WebGL"
+  ],
+  [
+    "Review canonical HANDOFF.md and architecture constraints",
+    "Rà soát HANDOFF.md và các ràng buộc kiến trúc"
+  ],
+  [
+    "Leon started task: Review canonical HANDOFF.md and architecture constraints",
+    "Leon bắt đầu rà soát HANDOFF.md và các ràng buộc kiến trúc"
+  ],
+  [
+    "Awaiting human review gate on visual snapshot",
+    "Đang chờ duyệt ảnh nghiệm thu"
+  ],
+  [
+    "Visual Director is at an approval gate: Awaiting human review on visual snapshot",
+    "Visual Director đang chờ duyệt ảnh nghiệm thu"
+  ],
+  [
+    "Temporary subagent Scene Verifier completed verification and despawned cleanly",
+    "Agent con mẫu Scene Verifier đã hoàn tất kiểm tra và rời cảnh"
+  ],
+  [
+    "Leon completed architecture review and returned to idle",
+    "Leon đã hoàn tất rà soát kiến trúc và trở về trạng thái nghỉ"
+  ],
+  [
+    "Observe an existing terminal session without controlling it. Taking over resumes the session and allows new tasks. Close that session in your terminal first to prevent conflicting writes.",
+    "Quan sát chỉ theo dõi phiên đang mở trong cửa sổ lệnh. Tiếp quản sẽ tiếp tục phiên đó và cho phép giao việc mới. Hãy đóng phiên trong cửa sổ lệnh trước để tránh hai bên cùng ghi dữ liệu."
+  ],
+  [
+    "An error occurred",
+    "Đã xảy ra lỗi"
+  ],
+  [
+    "Awaiting approval",
+    "Chờ phê duyệt"
+  ],
+  [
+    "Connected",
+    "Đã kết nối"
+  ],
+  [
+    "Scene preview",
+    "Cảnh mô phỏng"
+  ],
+  [
+    "Local",
+    "Trên máy"
+  ],
+  [
+    "Task history is not available yet.",
+    "Chưa có lịch sử công việc."
+  ]
+]
