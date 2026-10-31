@@ -4,8 +4,10 @@
 // 2. Live connection giữ trạng thái DISCONNECTED khi chưa có đường đọc xác thực chính thức từ Javis.
 // 3. Hỗ trợ kịch bản sự kiện mẫu tất định (deterministic mock events) để kiểm thử trực quan persistent agents + temporary subagents.
 import { EventEmitter } from 'node:events';
+import type { JavisLiveFeed, WorkforceAgent, WorkforceEvent } from './javisLive.ts';
 import type {
   Agent,
+  AgentCard,
   AgentStatus,
   Department,
   EventKind,
@@ -134,33 +136,64 @@ export const DETERMINISTIC_MOCK_EVENTS: JavisViewerEvent[] = [
   },
 ];
 
+export interface ViewerLayout { byId: Record<string, string>; default: string }
+export interface ViewerOptions { live?: JavisLiveFeed | null; layout?: ViewerLayout; openBase?: string }
+
+const ACTIVITY_STATUS: Record<WorkforceAgent['activity'], AgentStatus> = {
+  working: 'working', queued: 'queued', needs_input: 'input', approval_pending: 'waiting', idle: 'idle', unknown: 'unknown',
+};
+const sec = (v: number | null | undefined) => (v == null ? null : Math.round(v * 1000));
+
 export class JavisReadOnlyViewer extends EventEmitter {
+  private live: JavisLiveFeed | null = null;
+  private layout: ViewerLayout = { byId: {}, default: 'dieu-phoi' };
+  private openBase = '';
+  private lastConn = '';
+  private watch: NodeJS.Timeout | undefined;
   private departments: Department[];
   private agents = new Map<string, Agent>();
   private status = new Map<string, AgentStatus>();
   private currentTasks = new Map<string, TaskRecord>();
+  private taskHistory = new Map<string, TaskRecord>();
   private events: OfficeEvent[] = [];
   private seenEventIds = new Set<string>();
   private eventSeq = 1;
   private stepCursor = 0;
-  private mode: 'DISCONNECTED' | 'MOCK_DETERMINISTIC' = 'DISCONNECTED';
+  private mode: 'DISCONNECTED' | 'MOCK_DETERMINISTIC' | 'LIVE' = 'DISCONNECTED';
   private scenarioId: string | null = null;
   private lastEventId: string | null = null;
   private lastUpdatedAt: number | null = null;
 
-  constructor(baseDepartments: Department[], initialMock = false) {
+  constructor(baseDepartments: Department[], initialMock = false, opts: ViewerOptions = {}) {
     super();
-    this.departments = localizeDepartmentsEnglish(baseDepartments);
+    this.departments = baseDepartments;
     this.seedPersistentRoster();
-    if (initialMock) {
+    if (opts.layout) this.layout = opts.layout;
+    this.openBase = (opts.openBase ?? '').replace(/\/+$/, '');
+    if (opts.live) {
+      // Live replaces the DEMO roster entirely: the real roster may have any size (not the six demo actors).
+      this.live = opts.live;
+      this.mode = 'LIVE';
+      this.live.on('changed', () => { this.lastConn = this.live!.status().connection; this.emit('changed'); });
+      // Staleness is a function of time, not of events: re-evaluate on a slow timer.
+      this.watch = setInterval(() => {
+        const c = this.live!.status().connection;
+        if (c !== this.lastConn) { this.lastConn = c; this.emit('changed'); }
+      }, 2000);
+      this.watch.unref?.();
+    } else if (initialMock) {
       this.loadScenario('default-all');
     }
   }
+
+  isLive() { return this.live != null; }
+  shutdown() { clearInterval(this.watch); this.live?.stop(); }
 
   private seedPersistentRoster() {
     this.agents.clear();
     this.status.clear();
     this.currentTasks.clear();
+    this.taskHistory.clear();
     const now = 1761241200000;
     for (const item of PERSISTENT_ROSTER) {
       const a: Agent = {
@@ -177,21 +210,40 @@ export class JavisReadOnlyViewer extends EventEmitter {
         createdAt: now,
         actorKind: 'persistent',
         parentId: null,
-        sourceEventId: 'baseline-roster',
+        sourceEventId: null,
+        dataSource: 'DEMO',
       };
       this.agents.set(a.id, a);
-      this.status.set(a.id, 'idle');
+      this.status.set(a.id, this.mode === 'DISCONNECTED' ? 'unknown' : 'idle');
     }
   }
 
   getViewerStatus(): JavisViewerStatus {
+    if (this.live) {
+      const st = this.live.status();
+      const snap = this.live.getSnapshot();
+      const src = snap?.sources;
+      const ok = (k: string) => !!src?.[k]?.available && (st.connection === 'CONNECTED' || st.connection === 'STALE');
+      return {
+        enabled: true, readOnly: true, brain: snap?.brain.label ?? 'Kyan', liveConnection: st.connection,
+        liveReason: st.reason, mode: 'LIVE', scenarioId: null, appliedEvents: st.eventsApplied,
+        lastEventId: this.live.getRecentEvents().at(-1)?.event_id ?? null, lastUpdatedAt: st.lastSuccessAt, live: st,
+        coverage: {
+          agents: st.connection === 'CONNECTED' || st.connection === 'STALE' ? 'live' : 'unknown',
+          tasks: ok('tasks') ? 'live' : 'unknown',
+          subagents: 'unavailable',
+          approvals: ok('approvals') ? 'live' : 'unavailable',
+          usage: ok('usage') ? 'live' : 'unavailable',
+        },
+      };
+    }
     const isMock = this.mode === 'MOCK_DETERMINISTIC';
     return {
       enabled: true,
       readOnly: true,
       brain: 'Kyan',
       liveConnection: 'DISCONNECTED',
-      liveReason: 'Live Javis endpoint GET /agents?brain=Kyan&prompt=0&system=1 returned 401 Unauthorized. Held at authentication boundary.',
+      liveReason: 'Live bridge is not configured. Set JAVIS_VIEW_URL, JAVIS_VIEW_TOKEN (or JAVIS_VIEW_TOKEN_FILE) and JAVIS_VIEW_BRAIN.',
       mode: this.mode,
       scenarioId: this.scenarioId,
       appliedEvents: this.seenEventIds.size,
@@ -201,6 +253,8 @@ export class JavisReadOnlyViewer extends EventEmitter {
         agents: isMock ? 'mock' : 'unknown',
         tasks: isMock ? 'mock' : 'unknown',
         subagents: isMock ? 'mock' : 'unknown',
+        approvals: isMock ? 'mock' : 'unknown',
+        usage: 'unknown',
       },
     };
   }
@@ -214,7 +268,7 @@ export class JavisReadOnlyViewer extends EventEmitter {
     this.lastEventId = null;
     this.lastUpdatedAt = Date.now();
     this.seedPersistentRoster();
-    this.recordEvent('javis-core', 'system', 'Live Javis adapter is DISCONNECTED (401 auth boundary). Persistent roster shown idle; no fabricated live activity.');
+    // Disconnected samples are not observations. Do not manufacture event history.
     this.emit('changed');
     return this.getViewerStatus();
   }
@@ -222,6 +276,7 @@ export class JavisReadOnlyViewer extends EventEmitter {
   stepDeterministicMock(): { applied: JavisViewerEvent | null; status: JavisViewerStatus } {
     if (this.mode !== 'MOCK_DETERMINISTIC') {
       this.mode = 'MOCK_DETERMINISTIC';
+      this.seedPersistentRoster();
       this.scenarioId = 'deterministic-step';
     }
     if (this.stepCursor >= DETERMINISTIC_MOCK_EVENTS.length) {
@@ -239,8 +294,8 @@ export class JavisReadOnlyViewer extends EventEmitter {
     this.seenEventIds.clear();
     this.events = [];
     this.stepCursor = 0;
-    this.seedPersistentRoster();
     this.mode = 'MOCK_DETERMINISTIC';
+    this.seedPersistentRoster();
     this.scenarioId = scenario;
 
     // Giai đoạn 'active-subagent' dừng ở bước 6 để thấy rõ cả persistent working, waiting và temporary subagent trên sàn 3D
@@ -285,6 +340,7 @@ export class JavisReadOnlyViewer extends EventEmitter {
             createdAt: ev.ts,
           };
           this.currentTasks.set(a.id, task);
+          this.taskHistory.set(task.id, task);
           this.setAgentStatus(a.id, 'working');
           this.recordEvent(
             a.id,
@@ -298,6 +354,8 @@ export class JavisReadOnlyViewer extends EventEmitter {
       case 'task.completed': {
         const a = this.agents.get(actorId);
         if (a) {
+          const completed = this.currentTasks.get(a.id);
+          if (completed) { completed.status = 'done'; completed.finishedAt = ev.ts; this.taskHistory.set(completed.id, completed); }
           this.currentTasks.delete(a.id);
           this.setAgentStatus(a.id, 'idle');
           this.recordEvent(a.id, 'result', ev.text ?? 'Task completed.', { eventId: ev.eventId });
@@ -320,6 +378,7 @@ export class JavisReadOnlyViewer extends EventEmitter {
           actorKind: 'subagent',
           parentId: ev.parentId ?? 'javis-core',
           sourceEventId: ev.eventId,
+          dataSource: 'DEMO',
         };
         this.agents.set(sub.id, sub);
         const task: TaskRecord = {
@@ -333,6 +392,7 @@ export class JavisReadOnlyViewer extends EventEmitter {
           createdAt: ev.ts,
         };
         this.currentTasks.set(sub.id, task);
+        this.taskHistory.set(task.id, task);
         this.status.set(sub.id, 'working');
         this.emit('changed');
         this.recordEvent(
@@ -359,6 +419,8 @@ export class JavisReadOnlyViewer extends EventEmitter {
         const sub = this.agents.get(actorId);
         if (sub && sub.actorKind === 'subagent') {
           const parentId = sub.parentId ?? 'javis-core';
+          const completed = this.currentTasks.get(sub.id);
+          if (completed) { completed.status = 'done'; completed.finishedAt = ev.ts; this.taskHistory.set(completed.id, completed); }
           this.currentTasks.delete(sub.id);
           this.status.delete(sub.id);
           this.agents.delete(sub.id);
@@ -393,6 +455,8 @@ export class JavisReadOnlyViewer extends EventEmitter {
       case 'agent.idle': {
         const a = this.agents.get(actorId);
         if (a) {
+          const completed = this.currentTasks.get(a.id);
+          if (completed) { completed.status = 'done'; completed.finishedAt = ev.ts; this.taskHistory.set(completed.id, completed); }
           this.currentTasks.delete(a.id);
           this.setAgentStatus(a.id, 'idle');
           this.recordEvent(a.id, 'status', ev.text ?? 'Agent is idle', { eventId: ev.eventId });
@@ -429,27 +493,182 @@ export class JavisReadOnlyViewer extends EventEmitter {
   }
 
   listEvents(agentId: string, limit = 200): OfficeEvent[] {
+    if (this.live) return this.liveFeed().filter(e => e.agentId === agentId).slice(-limit);
     return this.events.filter(e => e.agentId === agentId).slice(-limit);
   }
 
   listTasks(agentId?: string): TaskRecord[] {
-    const all = [...this.currentTasks.values()];
+    if (this.live) return this.liveTasks(agentId);
+    const all = [...new Map([...this.taskHistory.values(), ...this.currentTasks.values()].map(t => [t.id, t])).values()];
     return agentId ? all.filter(t => t.agentId === agentId) : all;
   }
 
+  // ------------------------------------------------------------------ live projection
+  private usableLive(): boolean {
+    const c = this.live!.status().connection;
+    return !!this.live!.getSnapshot() && (c === 'CONNECTED' || c === 'STALE');
+  }
+
+  private liveAgents(): WorkforceAgent[] {
+    const snap = this.live!.getSnapshot();
+    return snap ? [...snap.agents, ...(snap.subagents ?? [])] : [];
+  }
+
+  private departmentOf(a: WorkforceAgent): string {
+    const d = this.layout.byId[a.id] ?? this.layout.byId['slug:' + a.slug] ?? this.layout.byId[a.slug];
+    return d && this.departments.some(x => x.id === d) ? d : this.layout.default;
+  }
+
+  private openUrl(open: unknown): string | null {
+    const o = open as { team_id?: string; task_id?: string } | null;
+    if (!this.openBase || !o?.team_id) return null;
+    const task = o.task_id ? `&task=${encodeURIComponent(o.task_id)}` : '';
+    return `${this.openBase}/#team=${encodeURIComponent(o.team_id)}${task}`;
+  }
+
+  private liveCard(a: WorkforceAgent, usable: boolean): AgentCard {
+    const st = this.live!.status();
+    const snap = this.live!.getSnapshot();
+    const names = new Map(this.liveAgents().map(x => [x.id, x.name]));
+    const t = usable ? a.task : null;
+    const ap = usable ? a.approval : null;
+    const u = a.usage;
+    return {
+      activity: usable ? a.activity : 'unknown',
+      activityReason: usable ? a.activity_reason : 'javis_unreachable',
+      task: t && {
+        id: t.id, title: t.title, step: t.step, stepKind: t.step_kind, status: t.status, team: t.team, source: t.source,
+        queuePos: t.queue_pos, reason: t.reason, startedAt: sec(t.started_at), stateChangedAt: sec(t.state_changed_at),
+      },
+      moreQueued: usable ? a.queued : 0,
+      approval: ap && { id: ap.id, title: ap.title, kind: ap.kind, requestedAt: sec(ap.requested_at), deadlineAt: sec(ap.deadline_at), openUrl: this.openUrl(ap.open) },
+      parent: a.parent_id ? { id: a.parent_id, name: names.get(a.parent_id) ?? a.parent_id } : null,
+      department: { id: this.departmentOf(a), source: 'viewer-layout' },
+      usage: usable && u?.available
+        ? { available: true, calls: u.calls, tokensIn: u.tokens_in, tokensOut: u.tokens_out, costUsd: u.cost_usd, partial: u.partial }
+        : { available: false, reason: usable ? (u?.reason ?? 'unavailable') : 'javis_unreachable' },
+      source: {
+        kind: usable ? 'LIVE' : 'UNKNOWN', name: 'Javis workforce projection', receivedAt: st.lastSuccessAt,
+        sourceAt: sec(snap?.generated_at), stale: st.connection === 'STALE', connection: st.connection,
+      },
+    };
+  }
+
+  private liveSnapshot() {
+    const usable = this.usableLive();
+    const agents = this.liveAgents().map(a => {
+      const card = this.liveCard(a, usable);
+      const ag: Agent = {
+        id: a.id, name: a.name, role: a.role, departmentId: card.department.id, provider: 'observer', model: null, cwd: null,
+        systemPrompt: null, permissionMode: 'plan', sessionId: null, createdAt: 0,
+        actorKind: a.kind, parentId: a.parent_id ?? null, sourceEventId: null, dataSource: usable ? 'LIVE' : undefined,
+      };
+      return {
+        ...ag, status: (usable ? ACTIVITY_STATUS[a.activity] : 'unknown') as AgentStatus, currentTask: null,
+        queued: usable ? a.queued : 0, card,
+      };
+    });
+    const snap = this.live!.getSnapshot();
+    const approvals = usable ? agents.filter(a => a.card.approval && a.card.activity === 'approval_pending').map(a => ({
+      id: a.card.approval!.id, agentId: a.id, title: a.card.approval!.title, kind: a.card.approval!.kind,
+      requestedAt: a.card.approval!.requestedAt, openUrl: a.card.approval!.openUrl,
+    })) : [];
+    const apOk = usable && !!snap?.sources.approvals?.available;
+    return {
+      departments: this.departments, agents, permissions: [], approvals,
+      approvalSummary: { available: apOk, pending: apOk ? (snap?.approvals.pending ?? 0) : null, questions: apOk ? (snap?.approvals.questions ?? 0) : null },
+      feed: this.liveFeed().slice(-30), limits: { maxConcurrent: 6, maxDepth: 3 }, javisViewer: this.getViewerStatus(),
+    };
+  }
+
+  private liveTasks(agentId?: string): TaskRecord[] {
+    if (!this.usableLive()) return [];
+    return this.liveAgents().filter(a => a.task && (!agentId || a.id === agentId)).map(a => ({
+      id: a.task!.id, agentId: a.id, fromAgentId: a.parent_id ?? null, parentTaskId: null, depth: a.parent_id ? 1 : 0,
+      prompt: a.task!.title, status: a.activity === 'working' ? 'running' : 'queued',
+      createdAt: sec(a.task!.state_changed_at) ?? 0,
+    } as TaskRecord));
+  }
+
+  private liveFeed(): OfficeEvent[] {
+    const byId = new Map(this.liveAgents().map(a => [a.id, a]));
+    const out: OfficeEvent[] = [];
+    for (const e of this.live!.getRecentEvents()) {
+      const a = byId.get(e.agent_id);
+      if (!a) continue;
+      const m = describeLive(e, a);
+      if (!m) continue;
+      out.push({
+        id: e.seq * 1000 + out.length, agentId: a.id, ts: Math.round((e.at ?? e.seen_at) * 1000), kind: m.kind, text: m.text,
+        data: { msg: { key: m.key, values: m.values }, eventId: e.event_id, eventSeq: e.seq },
+      });
+    }
+    return out;
+  }
+
   snapshot() {
+    if (this.live) return this.liveSnapshot();
+    return this.demoSnapshot();
+  }
+
+  private demoCard(a: Agent): AgentCard {
+    const status = this.status.get(a.id) ?? 'unknown';
+    const t = this.currentTasks.get(a.id) ?? null;
+    const activity: AgentCard['activity'] = status === 'working' ? 'working' : status === 'waiting' ? 'approval_pending'
+      : status === 'idle' ? 'idle' : 'unknown';
+    const parent = a.parentId ? this.agents.get(a.parentId) : null;
+    return {
+      activity, activityReason: this.mode === 'DISCONNECTED' ? 'javis_not_connected' : '',
+      // Mock event times are synthetic: never shown as if they were observations.
+      task: t && { id: t.id, title: t.prompt, step: null, stepKind: '', status: t.status, team: '', source: 'demo', queuePos: null, reason: '', startedAt: null, stateChangedAt: null },
+      moreQueued: 0,
+      approval: status === 'waiting' ? { id: 'demo-review-' + a.id, title: t?.prompt ?? '', kind: 'demo', requestedAt: null, deadlineAt: null, openUrl: null } : null,
+      parent: a.parentId ? { id: a.parentId, name: parent?.name ?? a.parentId } : null,
+      department: { id: a.departmentId, source: 'viewer-layout' },
+      usage: { available: false, reason: 'demo_has_no_usage' },
+      source: { kind: this.mode === 'MOCK_DETERMINISTIC' ? 'DEMO' : 'UNKNOWN', name: 'Deterministic sample', receivedAt: null, sourceAt: null, stale: false, connection: 'DISCONNECTED' },
+    };
+  }
+
+  private demoSnapshot() {
+    const waiting = [...this.agents.values()].filter(a => this.status.get(a.id) === 'waiting');
     return {
       departments: this.departments,
       agents: [...this.agents.values()].map(a => ({
         ...a,
-        status: this.status.get(a.id) ?? 'idle',
+        status: this.status.get(a.id) ?? 'unknown',
         currentTask: this.currentTasks.get(a.id) ?? null,
         queued: 0,
+        card: this.demoCard(a),
       })),
-      permissions: [],
+      permissions: waiting.map(a => ({ id: 'demo-review-' + a.id, agentId: a.id, tool: 'DEMO human review', input: { task: this.currentTasks.get(a.id)?.prompt, dataSource: 'DEMO' }, createdAt: this.lastUpdatedAt })),
+      approvals: waiting.map(a => ({ id: 'demo-review-' + a.id, agentId: a.id, title: this.currentTasks.get(a.id)?.prompt ?? '', kind: 'demo', requestedAt: null, openUrl: null })),
+      approvalSummary: { available: this.mode === 'MOCK_DETERMINISTIC', pending: this.mode === 'MOCK_DETERMINISTIC' ? waiting.length : null, questions: null },
       feed: this.events.filter(e => ['task', 'result', 'error', 'permission', 'system'].includes(e.kind)).slice(-30),
       limits: { maxConcurrent: 6, maxDepth: 3 },
       javisViewer: this.getViewerStatus(),
     };
   }
+}
+
+/** Structured, language-neutral description of a projection event. The browser renders `key` + `values` in EN/VI. */
+function describeLive(e: WorkforceEvent, a: WorkforceAgent): { kind: OfficeEvent['kind']; key: string; values: Record<string, string>; text: string } | null {
+  const name = a.name;
+  const title = a.task && e.task_id && a.task.id === e.task_id ? a.task.title : '';
+  const mk = (kind: OfficeEvent['kind'], key: string, text: string, extra: Record<string, string> = {}) => ({ kind, key, values: { name, ...extra }, text });
+  if (e.type === 'approval.requested') return mk('permission', 'feed.approvalRequested', `${name} needs approval`, { title: String(a.approval?.title ?? '') });
+  if (e.type === 'approval.cleared') return mk('system', 'feed.approvalCleared', `Approval request for ${name} is no longer pending`);
+  if (e.type === 'agent.activity') {
+    switch (e.to) {
+      case 'working': return title ? mk('task', 'feed.workingOn', `${name} is working on ${title}`, { title }) : mk('task', 'feed.working', `${name} is working`);
+      case 'queued': return mk('task', 'feed.queued', `${name} has queued work`);
+      case 'needs_input': return mk('permission', 'feed.needsInput', `${name} needs input`);
+      case 'approval_pending': return null;   // covered by approval.requested, no duplicate line
+      case 'idle': return mk('result', 'feed.idle', `${name} has no active work`);
+      case 'unknown': return mk('system', 'feed.unknown', `${name}: activity unknown`);
+    }
+  }
+  if (e.type === 'agent.appeared') return mk('system', 'feed.appeared', `${name} joined the roster`);
+  if (e.type === 'agent.removed') return mk('system', 'feed.removed', `${name} left the roster`);
+  return null;
 }

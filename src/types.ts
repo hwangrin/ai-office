@@ -8,7 +8,9 @@ export type Provider =
   | 'openai-chat'    // Chỉ chat, gọi OpenAI Responses API
   | 'observer';      // Gắn vào phiên Claude Code đang chạy sẵn (chỉ xem)
 
-export type AgentStatus = 'idle' | 'queued' | 'working' | 'waiting' | 'error' | 'offline';
+// 'input' = needs the owner's input (no approval record); 'waiting' = a confirmed approval is pending (Viewer only);
+// 'queued' = ordinary waiting in a queue. Studio never emits 'input'.
+export type AgentStatus = 'unknown' | 'idle' | 'queued' | 'working' | 'input' | 'waiting' | 'error' | 'offline';
 
 export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions';
 
@@ -53,6 +55,25 @@ export interface Agent {
   actorKind?: 'persistent' | 'subagent';
   parentId?: string | null;
   sourceEventId?: string | null;
+  dataSource?: 'DEMO' | 'LIVE' | 'LOCAL';
+}
+
+/** Normalised, source-labelled facts for the hover card and detail panel. Every field is optional or null when the
+ *  source does not provide it; the UI must not fill gaps. Times are epoch milliseconds. */
+export interface AgentCard {
+  activity: 'working' | 'queued' | 'needs_input' | 'approval_pending' | 'idle' | 'unknown';
+  activityReason: string;
+  task: null | {
+    id: string; title: string; step: { done: number; total: number } | null; stepKind: string; status: string;
+    team: string; source: string; queuePos: number | null; reason: string;
+    startedAt: number | null; stateChangedAt: number | null;
+  };
+  moreQueued: number;
+  approval: null | { id: string; title: string; kind: string; requestedAt: number | null; deadlineAt: number | null; openUrl: string | null };
+  parent: null | { id: string; name: string };
+  department: { id: string; source: 'viewer-layout' };
+  usage: { available: boolean; reason?: string; calls?: number; tokensIn?: number; tokensOut?: number; costUsd?: number; partial?: boolean };
+  source: { kind: 'LIVE' | 'DEMO' | 'UNKNOWN' | 'LOCAL'; name: string; receivedAt: number | null; sourceAt: number | null; stale: boolean; connection: string };
 }
 
 export interface JavisViewerEvent {
@@ -83,17 +104,20 @@ export interface JavisViewerStatus {
   enabled: boolean;
   readOnly: boolean;
   brain: string;
-  liveConnection: 'DISCONNECTED';
+  liveConnection: 'CONNECTED' | 'STALE' | 'CONNECTING' | 'DISCONNECTED' | 'AUTH_FAILED';
   liveReason: string;
-  mode: 'DISCONNECTED' | 'MOCK_DETERMINISTIC';
+  mode: 'DISCONNECTED' | 'MOCK_DETERMINISTIC' | 'LIVE';
+  live?: unknown;
   scenarioId: string | null;
   appliedEvents: number;
   lastEventId: string | null;
   lastUpdatedAt: number | null;
   coverage: {
-    agents: 'mock' | 'unknown';
-    tasks: 'mock' | 'unknown';
-    subagents: 'mock' | 'unknown';
+    agents: 'mock' | 'unknown' | 'live';
+    tasks: 'mock' | 'unknown' | 'live';
+    subagents: 'mock' | 'unknown' | 'unavailable';
+    approvals?: 'mock' | 'unknown' | 'live' | 'unavailable';
+    usage?: 'mock' | 'unknown' | 'live' | 'unavailable';
   };
 }
 

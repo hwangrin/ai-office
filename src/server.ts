@@ -11,7 +11,8 @@ import { repo } from './db.ts';
 import { discoverSessions } from './observer.ts';
 import { pricing } from './pricing.ts';
 import { saveUpload, getUpload, isImage, MAX_UPLOAD } from './attachments.ts';
-import { JavisReadOnlyViewer, localizeDepartmentsEnglish } from './javisViewer.ts';
+import { JavisReadOnlyViewer, localizeDepartmentsEnglish, type ViewerLayout } from './javisViewer.ts';
+import { JavisLiveFeed } from './javisLive.ts';
 import type { Department } from './types.ts';
 
 const PORT = Number(process.env.PORT ?? 4800);
@@ -29,12 +30,34 @@ const cfg = existsSync('office.config.json')
   ? (JSON.parse(readFileSync('office.config.json', 'utf8')) as { departments: Department[]; agents?: any[] })
   : { departments: [], agents: [] };
 
+// Live bridge: the credential is a Javis `view` token (GET only, bound to one brain). It is read from the environment or a
+// file here, kept in this process, and never sent to the browser.
+const viewToken = (() => {
+  const direct = process.env.JAVIS_VIEW_TOKEN?.trim();
+  if (direct) return direct;
+  const file = process.env.JAVIS_VIEW_TOKEN_FILE?.trim();
+  if (file && existsSync(file)) return readFileSync(file, 'utf8').trim();
+  return '';
+})();
+const viewLayout: ViewerLayout = existsSync('javis-layout.json')
+  ? (JSON.parse(readFileSync('javis-layout.json', 'utf8')) as ViewerLayout)
+  : { byId: {}, default: 'dieu-phoi' };
+
 if (VIEWER_READONLY) {
   const initialMock = process.env.JAVIS_VIEWER_MOCK === '1' || process.env.JAVIS_VIEWER_MOCK === 'true';
-  viewer = new JavisReadOnlyViewer(cfg.departments, initialMock);
-  console.log(`🔒 Javis Read-Only Viewer Mode enabled (Brain: Kyan, Live: DISCONNECTED)`);
+  const url = process.env.JAVIS_VIEW_URL?.trim();
+  const brain = process.env.JAVIS_VIEW_BRAIN?.trim();
+  let live: JavisLiveFeed | null = null;
+  if (url && brain && viewToken) {
+    live = new JavisLiveFeed({ baseUrl: url, token: viewToken, brain, intervalMs: Number(process.env.JAVIS_VIEW_POLL_MS ?? 2000) });
+  } else if (url) {
+    console.warn('⚠ JAVIS_VIEW_URL is set but JAVIS_VIEW_BRAIN or the view token (JAVIS_VIEW_TOKEN / JAVIS_VIEW_TOKEN_FILE) is missing: live bridge stays off.');
+  }
+  viewer = new JavisReadOnlyViewer(cfg.departments, initialMock, { live, layout: viewLayout, openBase: process.env.JAVIS_VIEW_OPEN_URL?.trim() || url || '' });
+  live?.start();
+  console.log(`🔒 Javis Read-Only Viewer Mode enabled (${live ? `Live: polling ${new URL(url!).host}, brain ${brain}` : 'Live: DISCONNECTED'})`);
 } else {
-  office = new Office();
+  office = new Office(process.env.OFFICE_EXECUTION_ENABLED === '1');
   if (cfg.departments.length > 0) {
     const existing = repo.listDepartments();
     if (existing.length === 0) {
@@ -108,12 +131,14 @@ const id = (req: Request) => String(req.params.id);
 
 api.get('/state', wrap(() => {
   if (viewer) {
-    return { ...viewer.snapshot(), providers: ['observer'] };
+    return { ...viewer.snapshot(), applicationMode: 'JAVIS_LIVE_VIEWER', executionEnabled: false, providers: ['observer'] };
   }
   const snap = office!.snapshot();
   return {
     ...snap,
-    departments: localizeDepartmentsEnglish(snap.departments),
+    departments: snap.departments,
+    applicationMode: 'ORIGINAL_STUDIO',
+    executionEnabled: process.env.OFFICE_EXECUTION_ENABLED === '1',
     providers: PROVIDERS,
     javisViewer: {
       enabled: false,
@@ -138,15 +163,18 @@ api.get('/javis-viewer/status', wrap(() => {
 }));
 api.post('/javis-viewer/mock/scenario', wrap(req => {
   if (!viewer) throw new Error('Javis Read-Only Viewer is not enabled');
+  if (viewer.isLive()) throw new Error('Sample scenarios are disabled while the live Javis bridge is configured');
   const scenario = String(req.body?.scenario ?? 'active-subagent') as 'disconnected' | 'active-subagent' | 'default-all';
   return viewer.loadScenario(scenario);
 }));
 api.post('/javis-viewer/mock/step', wrap(() => {
   if (!viewer) throw new Error('Javis Read-Only Viewer is not enabled');
+  if (viewer.isLive()) throw new Error('Sample scenarios are disabled while the live Javis bridge is configured');
   return viewer.stepDeterministicMock();
 }));
 api.post('/javis-viewer/mock/reset', wrap(() => {
   if (!viewer) throw new Error('Javis Read-Only Viewer is not enabled');
+  if (viewer.isLive()) throw new Error('Sample scenarios are disabled while the live Javis bridge is configured');
   return viewer.resetToDisconnected();
 }));
 
@@ -179,9 +207,12 @@ api.get('/usage', wrap(req => {
   if (VIEWER_READONLY) {
     return {
       range,
-      since: 0,
+      since: null,
+      available: false,
+      dataSource: 'UNKNOWN',
+      reason: 'Javis usage and cost are not connected. No observed totals are available.',
       agents: [],
-      total: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0, unpriced: 0, tasks: 0 },
+      total: null,
       byDay: [],
       usdToVnd: pricing().usdToVnd ?? null,
     };
@@ -240,14 +271,11 @@ server.on('error', (e: NodeJS.ErrnoException) => {
 server.listen(PORT, HOST, () => {
   console.log(`\n🏢 Văn phòng ảo: http://localhost:${PORT}`);
   if (VIEWER_READONLY) {
-    console.log(`   Chế độ: Javis Read-Only Viewer (Live: DISCONNECTED, Deterministic Mock: Ready)`);
+    console.log(viewer?.isLive() ? `   Chế độ: Javis Read-Only Viewer (Live bridge configured)` : `   Chế độ: Javis Read-Only Viewer (Live: DISCONNECTED, Deterministic Mock: Ready)`);
   } else {
-    const auth = process.env.ANTHROPIC_API_KEY ? 'ANTHROPIC_API_KEY trong .env (trả theo token)'
-      : process.env.CLAUDE_CODE_OAUTH_TOKEN ? `CLAUDE_CODE_OAUTH_TOKEN trong .env (${process.env.CLAUDE_CODE_OAUTH_TOKEN.slice(0, 10)}…)`
-      : 'đăng nhập Claude Code trên máy (~/.claude)';
-    console.log(`   Claude Code đăng nhập bằng: ${auth}`);
+    console.log('   Studio worker execution: ' + (process.env.OFFICE_EXECUTION_ENABLED === '1' ? 'ENABLED' : 'HELD'));
   }
-  if (!process.env.OFFICE_TOKEN) console.log(`   Token phiên này: ${TOKEN} (đặt OFFICE_TOKEN trong .env để cố định)`);
+  console.log('   API authorization is provided through the same-origin HTML bootstrap.');
 });
 
 process.on('SIGINT', () => { console.log('\nĐóng văn phòng…'); process.exit(0); });

@@ -8,7 +8,7 @@ const { spawn, execFileSync } = require('node:child_process');
 
 const rootDir = path.resolve(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
-const pidFile = path.join(dataDir, 'launcher-bg.pid.json');
+
 const logFile = path.join(dataDir, 'launcher-bg.log');
 
 const args = process.argv.slice(2);
@@ -20,6 +20,7 @@ const getOpt = (name, def) => {
 const hasFlag = (name) => args.includes(`--${name}`);
 
 const PORT = Number(getOpt('port', process.env.PORT || '4801'));
+const pidFile = path.join(dataDir, PORT === 4801 ? 'launcher-bg.pid.json' : 'launcher-bg-' + PORT + '.pid.json');
 const HOST = getOpt('host', process.env.HOST || '127.0.0.1');
 const VIEWER_READONLY = getOpt('viewer-readonly', process.env.JAVIS_VIEWER_READONLY || '1');
 const VIEWER_MOCK = getOpt('mock', process.env.JAVIS_VIEWER_MOCK || '0');
@@ -140,6 +141,7 @@ async function doStart() {
     DB_PATH: path.join(dataDir, `office-${PORT}.db`),
     JAVIS_VIEWER_READONLY: String(VIEWER_READONLY),
     JAVIS_VIEWER_MOCK: String(VIEWER_MOCK),
+    OFFICE_EXECUTION_ENABLED: getOpt('studio-execution', '0'),
   };
 
   const child = spawn(process.execPath, [tsxCli, serverEntry], {

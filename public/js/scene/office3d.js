@@ -20,7 +20,12 @@ import * as L from './leisure.js';
 
 const FLOOR = { w: 36, d: 28 };
 const TERRACE = 2.6;
-const STATUS_RING = { working: '#ffd38a', waiting: '#ff9a4d', queued: '#8fb3ff', error: '#ff6b6b' };
+const STATUS_RING = { working: '#ffd38a', waiting: '#ff9a4d', input: '#8fd8ff', queued: '#8fb3ff', error: '#ff6b6b' };
+// Attention badges: waiting = a confirmed approval is pending (strong cue), input = the agent needs the owner's input (soft cue).
+const BADGE_STYLE = {
+  approval: { size: 66, color: '#1a1205', bg: '#ffb347', border: 'rgba(255,243,214,.95)', px: 46, fallback: 'NEEDS APPROVAL' },
+  input: { size: 52, color: '#06202e', bg: '#8fd8ff', border: 'rgba(230,248,255,.9)', px: 30, fallback: 'NEEDS INPUT' },
+};
 const MAX_POINT_LIGHTS = 8;
 
 /** Hướng nhìn: người dựng quay về -z; trả yaw để nhìn từ (fx,fz) về (tx,tz) */
@@ -47,9 +52,9 @@ export const QUALITY = { high: 'Cao', medium: 'Vừa', low: 'Thấp' };
 export const LABEL_MODES = { always: 'Always', hover: 'Hover', off: 'Off' };
 
 export class Office3D {
-  constructor(container, { onPick, onHover, onProgress } = {}) {
+  constructor(container, { onPick, onHover, onPreview, onProgress } = {}) {
     this.container = container;
-    this.onPick = onPick; this.onHover = onHover; this.onProgress = onProgress;
+    this.onPick = onPick; this.onHover = onHover; this.onPreview = onPreview; this.onProgress = onProgress;
     this.agents = new Map();     // agentId → visual
     this.clusters = [];          // nhóm bàn có đèn thả
     this.hitboxes = [];
@@ -674,10 +679,33 @@ export class Office3D {
     });
   }
 
+  // ---------------------------------------------------------------- huy hiệu chú ý (cần phê duyệt / cần bổ sung)
+  badgeText(kind) { return this.badgeLabels?.[kind] || BADGE_STYLE[kind].fallback; }
+  makeBadge(kind) {
+    const st = BADGE_STYLE[kind];
+    const { texture, aspect } = pillLabel(this.badgeText(kind), { size: st.size, color: st.color, bg: st.bg, border: st.border, pad: 18, weight: 700 });
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+    sp.userData.kind = kind; sp.userData.aspect = aspect; sp.userData.px = st.px; sp.userData.h = 0.5;
+    sp.scale.set(0.5 * aspect, 0.5, 1); sp.renderOrder = 12; sp.visible = false;
+    return sp;
+  }
+  /** Localised badge words from the UI layer; rebuilds every badge texture. */
+  setBadgeText(labels) {
+    this.badgeLabels = labels;
+    for (const v of this.agents.values()) {
+      for (const key of ['alert', 'inputBadge']) {
+        const old = v[key], fresh = this.makeBadge(old.userData.kind);
+        fresh.position.copy(old.position); fresh.visible = old.visible;
+        old.parent?.remove(old); old.material.map?.dispose(); old.material.dispose();
+        this.dynamic.add(fresh); v[key] = fresh;
+      }
+    }
+  }
+
   // ---------------------------------------------------------------- nhân viên
   addAgent(agent, { x, y, z, facing, screen, theme, cluster, focus, lapDevice, variant = 'desk', exit }) {
     // ưu tiên nhân vật Mixamo có animation; không có thì dùng nhân vật dựng bằng code
-    const person = this.people.create(agent.id) ?? new Person(agent.id);
+    const person = this.people.create(agent) ?? new Person(agent.id);
     person.variant = variant;
     person.place(x, y, z, facing);
     if (lapDevice && person instanceof Person) {
@@ -712,10 +740,18 @@ export class Office3D {
     label.visible = false;
     this.dynamic.add(label);
 
-    const al = pillLabel('!', { size: 56, color: '#1a1205', bg: '#ff9a4d', pad: 12 });
-    const alert = new THREE.Sprite(new THREE.SpriteMaterial({ map: al.texture, transparent: true, depthTest: false }));
-    alert.scale.set(0.34 * al.aspect, 0.34, 1); alert.userData.aspect = al.aspect; alert.userData.h = 0.34; alert.position.set(x, 2.38 + y - 0.5, z); alert.renderOrder = 11; alert.visible = false;
-    this.dynamic.add(alert);
+    const alert = this.makeBadge('approval');
+    const inputBadge = this.makeBadge('input');
+    alert.position.set(x, 2.38 + y - 0.5, z); inputBadge.position.copy(alert.position);
+    this.dynamic.add(alert, inputBadge);
+    // Amber highlight for a pending approval: a pulsing floor pool under the person and desk, plus a faint beam.
+    const glow = new THREE.Mesh(new THREE.CircleGeometry(1.2, 48).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+    glow.position.set(x, 0.045, z); glow.renderOrder = 3; glow.userData.noAO = true; glow.visible = false;
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 2.6, 28, 1, true),
+      new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, toneMapped: false }));
+    beam.position.set(x, 1.3, z); beam.renderOrder = 3; beam.userData.noAO = true; beam.visible = false;
+    this.dynamic.add(glow, beam);
 
     const hit = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.7, 1.3), new THREE.MeshBasicMaterial());
     hit.position.set(x, 0.85, z); hit.rotation.y = facing; hit.updateMatrixWorld(true);
@@ -726,7 +762,7 @@ export class Office3D {
     const home = { x, z, facing, seatH: y, variant, prop: null, exit: exit ?? behind(x, z, facing, 0.95) };
     const v = {
       id: agent.id, name: agent.name, role: agent.role || '', actorKind: agent.actorKind || 'persistent',
-      person, screen, theme, ring, label, alert, hit, cluster, focus, status: null, pos: new THREE.Vector3(x, 1.25, z),
+      person, screen, theme, ring, label, alert, inputBadge, glow, beam, hit, cluster, focus, status: null, pos: new THREE.Vector3(x, 1.25, z),
       home, where: 'home', spot: null, breakIn: null, stay: 0, firstBreak: true, observer: agent.provider === 'observer',
     };
     this.agents.set(agent.id, v);
@@ -834,7 +870,8 @@ export class Office3D {
     const seatH = p.baseY ?? 0.5;
     const ly = (1.46 + seatH) * (1 - p.standing) + 2.14 * p.standing;
     v.label.position.set(a.x, ly, a.z);
-    v.alert.position.x = a.x; v.alert.position.z = a.z; v.alertY = ly + 0.44;
+    for (const b of [v.alert, v.inputBadge]) { b.position.x = a.x; b.position.z = a.z; }
+    v.glow.position.x = a.x; v.glow.position.z = a.z; v.beam.position.x = a.x; v.beam.position.z = a.z; v.alertY = ly;
     v.ring.position.set(a.x, 0.03, a.z);
     v.hit.position.set(a.x, 0.85 + 0.1 * p.standing, a.z); v.hit.rotation.y = p.root.rotation.y; v.hit.updateMatrixWorld(true);
     v.focus.set(a.x, 1.15 + 0.2 * p.standing, a.z);
@@ -849,6 +886,8 @@ export class Office3D {
     v.screen.material = this.screens.material(v.theme, status);
     v.ring.material.color.set(v.actorKind === 'subagent' && status === 'working' ? '#8fb3ff' : (STATUS_RING[status] ?? '#c7d6ff'));
     v.alert.visible = status === 'waiting';
+    v.inputBadge.visible = status === 'input';
+    v.glow.visible = v.beam.visible = status === 'waiting';
     this.updateLabel(v);
     if (!silent) this.refreshLights();
   }
@@ -862,7 +901,7 @@ export class Office3D {
       // 'hover': hiện khi đang bận, được chọn hoặc rê chuột vào
       v.label.visible = (v.status !== 'idle' && v.status !== 'offline') || v.id === this.selectedId || v.id === this.hoveredId;
     }
-    v.ring.userData.target = ['working', 'waiting', 'queued', 'error'].includes(v.status) ? 0.85 : v.id === this.selectedId ? 0.55 : v.id === this.hoveredId ? 0.35 : 0;
+    v.ring.userData.target = ['working', 'waiting', 'input', 'queued', 'error'].includes(v.status) ? 0.85 : v.id === this.selectedId ? 0.55 : v.id === this.hoveredId ? 0.35 : 0;
   }
 
   select(id) {
@@ -961,17 +1000,26 @@ export class Office3D {
     el.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; this.camAnim = null; });
     el.addEventListener('pointerup', e => {
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
-      const id = pick(e); if (id) this.onPick?.(id);
+      const id = pick(e);
+      if (e.pointerType === 'touch') {
+        // Mobile: first tap previews, a second tap on the same person opens the details.
+        if (!id) { if (this.previewId) { this.previewId = null; this.onPreview?.(null); } return; }
+        if (this.previewId === id) { this.previewId = null; this.onPreview?.(null); this.onPick?.(id); }
+        else { this.previewId = id; this.onPreview?.(id, e); }
+        return;
+      }
+      if (id) this.onPick?.(id);
     });
     el.addEventListener('dblclick', e => { const id = pick(e); if (id) this.flyTo(id); });
+    el.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch' && this.hoveredId) { const prev = this.hoveredId; this.hoveredId = null; const v = this.agents.get(prev); if (v) this.updateLabel(v); this.onHover?.(null); } });
     el.addEventListener('pointermove', e => {
-      if (e.buttons) return;
+      if (e.buttons || e.pointerType === 'touch') return;
       const id = pick(e);
-      if (id === this.hoveredId) return;
+      if (id === this.hoveredId) { if (id) this.onHover?.(id, e); return; }
       const prev = this.hoveredId; this.hoveredId = id;
       for (const k of [prev, id]) { const v = this.agents.get(k); if (v) { this.updateLabel(v); v.person.mat.emissive.set(k === id && v.status !== 'error' ? '#2a1d0c' : v.status === 'error' ? '#3a0606' : '#000'); } }
       el.style.cursor = id ? 'pointer' : 'grab';
-      this.onHover?.(id);
+      this.onHover?.(id, e);
     });
   }
 
@@ -1017,13 +1065,36 @@ export class Office3D {
       m.opacity += (tgt - m.opacity) * Math.min(1, dt * 6);
       v.ring.visible = m.opacity > 0.01;
       if (v.ring.visible) { const s = 1 + (Math.sin(t * 3 + v.pos.x) + 1) * 0.07; v.ring.scale.set(s, 1, s); }
-      if (v.alert.visible) v.alert.position.y = (v.alertY ?? v.person.baseY + 1.8) + Math.sin(t * 5) * 0.05;
       // nhãn giữ kích thước dễ đọc: thu nhỏ khi camera lại gần
-      for (const sp of [v.label, v.alert]) {
-        if (!sp.visible) continue;
-        const d = this.camera.position.distanceTo(sp.position);
+      if (v.label.visible) {
+        const sp = v.label, d = this.camera.position.distanceTo(sp.position);
         const h = Math.min(sp.userData.h, Math.max(0.14, d * 0.019 * (sp.userData.h / 0.34)));
         sp.scale.set(h * sp.userData.aspect, h, 1);
+      }
+      // huy hiệu chú ý: kích thước theo PIXEL màn hình (đọc được từ camera toàn cảnh), xếp trên nhãn tên
+      const badge = v.alert.visible ? v.alert : v.inputBadge.visible ? v.inputBadge : null;
+      if (badge) {
+        const d = this.camera.position.distanceTo(badge.position);
+        const viewH = this.renderer.domElement.clientHeight || 800;
+        const worldPerPx = 2 * d * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) / viewH;
+        const h = Math.min(1.7, Math.max(0.2, worldPerPx * badge.userData.px));
+        badge.scale.set(h * badge.userData.aspect, h, 1);
+        const labelTop = v.label.visible ? v.label.position.y + v.label.scale.y / 2 : (v.alertY ?? 1.9);
+        badge.position.y = labelTop + 0.06 + h / 2 + Math.sin(t * 5) * 0.04 * (badge === v.alert ? 1 : 0.4);
+        // keep the whole badge on screen: slide it sideways (along the camera's right vector) when the person is near an edge
+        badge.position.x = v.person.anchor.x; badge.position.z = v.person.anchor.z;   // undo last frame's slide
+        const ndc = badge.position.clone().project(this.camera);
+        const viewW = this.renderer.domElement.clientWidth || 1200, worldW = worldPerPx * viewW;
+        const halfNdc = (h * badge.userData.aspect / 2) / (worldW / 2);
+        const lim = 0.97 - halfNdc, off = Math.abs(ndc.x) > 1 ? 0 : ndc.x > lim ? lim - ndc.x : ndc.x < -lim ? -lim - ndc.x : 0;   // never drag the badge of an off-screen person onto someone else
+        const right = this._right ??= new THREE.Vector3();
+        right.setFromMatrixColumn(this.camera.matrixWorld, 0);
+        badge.position.addScaledVector(right, off * (worldW / 2));
+      }
+      if (v.glow.visible) {
+        v.glow.material.opacity = 0.36 + 0.14 * Math.sin(t * 3.2);
+        v.beam.material.opacity = 0.15 + 0.06 * Math.sin(t * 3.2 + 1);
+        const gs = 1 + 0.05 * Math.sin(t * 3.2); v.glow.scale.set(gs, 1, gs);
       }
     }
     // đèn thả: sáng dần / dịu dần

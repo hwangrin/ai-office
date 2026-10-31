@@ -108,7 +108,7 @@ export class Person {
     const target = {
       type: s === 'working' ? 1 : 0,
       raise: s === 'waiting' ? 1 : 0,
-      lap: s === 'idle' || s === 'queued' || s === 'error' || s === 'offline' ? 1 : 0,
+      lap: s === 'idle' || s === 'queued' || s === 'error' || s === 'offline' || s === 'input' || s === 'unknown' ? 1 : 0,
       down: s === 'error' ? 1 : 0,
     };
     const k = Math.min(1, dt * 5);

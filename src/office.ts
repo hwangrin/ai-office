@@ -42,7 +42,7 @@ export class Office extends EventEmitter implements OfficeApi {
   private perms = new Map<string, PendingPerm>();
   private observer: SessionObserver;
 
-  constructor() {
+  constructor(private executionEnabled = false) {
     super();
     this.observer = new SessionObserver(
       () => repo.listAgents(),
@@ -50,7 +50,7 @@ export class Office extends EventEmitter implements OfficeApi {
       (agentId, s) => this.setStatus(agentId, s),
     );
     this.observer.start();
-    this.resumeInterrupted();
+    if (this.executionEnabled) this.resumeInterrupted();
     this.housekeeping();
   }
 
@@ -191,6 +191,7 @@ export class Office extends EventEmitter implements OfficeApi {
   getTask(id: string) { return repo.getTask(id); }
 
   assignTask(toAgentId: string, prompt: string, fromAgentId?: string, parentTaskId?: string, attachments: Attachment[] = []): TaskRecord {
+    if (!this.executionEnabled) throw new Error('Studio worker execution is HELD. Enable OFFICE_EXECUTION_ENABLED=1 explicitly to dispatch tasks.');
     const agent = repo.getAgent(toAgentId);
     if (!agent) throw new Error(`Không có nhân viên "${toAgentId}"`);
     if (agent.provider === 'observer') throw new Error(`${agent.name} là phiên quan sát, không nhận việc được`);
@@ -226,6 +227,7 @@ export class Office extends EventEmitter implements OfficeApi {
   }
 
   private pump() {
+    if (!this.executionEnabled) return;
     while (this.activeCount() < MAX_CONCURRENT) {
       const idx = this.queue.findIndex(t => !this.running.has(t.agentId));
       if (idx < 0) return;

@@ -163,6 +163,47 @@
     .row2 { grid-template-columns: 1fr; }
     .row4 { grid-template-columns: 1fr 1fr; }
   }
+#loading.done{visibility:hidden} @media(max-width:700px){#toolbar{flex-wrap:wrap;max-height:34vh;overflow:auto;max-width:calc(100vw - 20px)} #toolbar .desktop-only{display:inline-flex!important}}
+  /* Agent hover / preview card */
+  #agent-card { position: fixed; z-index: 7; width: min(318px, calc(100vw - 24px)); padding: 11px 13px; font-size: 12.5px; line-height: 1.4; pointer-events: none; display: none; }
+  #agent-card.pinned { pointer-events: auto; }
+  #agent-card.sheet { left: 12px; right: 12px; bottom: 12px; top: auto; width: auto; max-height: 46vh; overflow: auto; }
+  #agent-card .ac-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #agent-card .ac-head b, .p-card .ac-head b { font: 600 14.5px 'Noto Serif', Georgia, serif; }
+  .ac-chip { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line-2); white-space: nowrap; color: var(--muted); }
+  .ac-working { color: var(--gold); border-color: var(--gold); }
+  .ac-queued { color: #8fb3ff; border-color: rgba(143,179,255,.55); }
+  .ac-needs_input, .ac-input { color: #8fd8ff; border-color: rgba(143,216,255,.6); }
+  .ac-approval_pending { color: #1a1205; background: #ffb347; border-color: #ffb347; }
+  .ac-unknown { color: var(--muted); border-style: dashed; }
+  .ac-sub { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .ac-task { margin-top: 7px; color: var(--text); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .p-card .ac-task { -webkit-line-clamp: unset; display: block; }
+  .ac-none { color: var(--muted); font-weight: 400; }
+  .ac-line { color: #d8d3c7; margin-top: 3px; font-size: 12px; }
+  .ac-approval { margin-top: 8px; padding: 7px 9px; border-radius: 9px; border: 1px solid rgba(255,179,71,.65); background: rgba(255,179,71,.12); display: flex; flex-direction: column; gap: 2px; }
+  .ac-approval b { color: #ffb347; font-size: 11px; letter-spacing: .06em; }
+  .ac-approval.ac-question { border-color: rgba(143,216,255,.55); background: rgba(143,216,255,.09); }
+  .ac-approval.ac-question b { color: #8fd8ff; }
+  .ac-link { display: inline-block; margin-top: 4px; color: #1a1205; background: #ffb347; border-radius: 8px; padding: 4px 10px; font-weight: 600; text-decoration: none; align-self: flex-start; }
+  .ac-src { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+  .ac-src.ac-stale { color: var(--warn); }
+  #agent-card .ac-actions { display: none; gap: 6px; margin-top: 8px; }
+  #agent-card.pinned .ac-actions { display: flex; }
+  .p-card { padding: 10px 16px 4px; border-bottom: 1px solid var(--line); }
+  .p-card:empty { display: none; }
+  #hud-approvals { margin-top: 6px; display: none; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  #hud-approvals.has { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; color: #1a1205; background: #ffb347; cursor: pointer; border: 0; }
+  #hud-approvals.unknown { display: inline-flex; color: var(--muted); border: 1px dashed var(--line-2); padding: 3px 9px; border-radius: 99px; background: none; cursor: default; }
+  #hud-approvals.none { display: inline-flex; font-weight: 500; }
+  .vb-pill.live { color: var(--ok); border-color: rgba(127,209,160,.55); background: rgba(127,209,160,.1); }
+  .vb-pill.stale { color: var(--warn); border-color: rgba(255,154,77,.55); background: rgba(255,154,77,.1); }
+  /* While an approval is pending the HUD shrinks so it never covers a character that needs the owner. */
+  body.hud-attn #hud-sub, body.hud-attn #viewer-reason { display: none; }
+  body.hud-attn #hud { padding: 10px 16px; }
+  body.hud-attn #viewer-banner { margin-top: 6px; padding-top: 6px; }
+  .chip.status-input { color: #8fd8ff; border-color: rgba(143,216,255,.6); }
+  .chip.status-waiting { color: #ffb347; border-color: rgba(255,179,71,.7); }
 </style>
 <script type="importmap">
 { "imports": {
@@ -177,17 +218,18 @@
   <div id="hud" class="card">
     <div class="eyebrow-row">
       <div class="eyebrow" id="hud-eyebrow">Văn phòng agency · Trực tiếp</div>
-      <div class="clock-badge" id="hud-clock" title="Local wall clock &amp; Day/Night environment">--:--:--</div>
+      <div class="clock-badge" id="hud-clock" title="Local wall clock &amp; Day/Night environment">--:--</div>
     </div>
     <h1 id="hud-title">Đang kết nối…</h1>
     <p id="hud-sub">Đèn chỉ sáng ở bàn có việc thật.</p>
     <div class="count" id="hud-count"></div>
+    <button type="button" id="hud-approvals"></button>
     <div id="viewer-banner">
       <div class="vb-row" id="viewer-pills"></div>
       <div id="viewer-reason"></div>
     </div>
   </div>
-  <div id="toolbar">
+  <div id="toolbar"><button class="btn" id="btn-mode">Application modes</button><button class="btn" id="btn-language">EN / VI</button><button class="btn" id="btn-roster">Employees</button><button class="btn" id="btn-history">Task history</button><button class="btn" id="btn-demo">DEMO</button>
     <button class="btn primary" id="btn-brief">Giao brief</button>
     <button class="btn" id="btn-add">+ Nhân viên</button>
     <button class="btn" id="btn-attach">Gắn phiên</button>
@@ -197,15 +239,17 @@
     <button class="btn ghost" id="btn-overview">Toàn cảnh</button>
     <button class="btn ghost desktop-only" id="btn-quality">Chất lượng</button>
   </div>
-  <div id="feed" class="card"></div>
+  <div data-user-content id="feed" class="card"></div>
+  <div id="agent-card" class="card" data-user-content role="status" aria-live="polite"></div>
   <div id="hint">Kéo để xoay · cuộn để phóng to · bấm vào nhân viên để xem chi tiết · nhấp đúp để đến gần</div>
   <aside id="panel" class="card">
     <header>
-      <h2 id="p-name"></h2>
-      <div class="meta" id="p-role"></div>
+      <h2 data-user-content id="p-name"></h2>
+      <div class="meta" data-user-content id="p-role"></div>
       <div class="chips" id="p-chips"></div>
+      <div class="p-card" id="p-card" data-user-content></div>
       <div class="actions">
-        <button class="btn small" id="p-focus">Đến gần</button>
+        <button class="btn small" id="p-history">Task history</button><button class="btn small" id="p-focus">Focus</button>
         <button class="btn small" id="p-stop">Dừng</button>
         <button class="btn small" id="p-reset">Phiên mới</button>
         <button class="btn small" id="p-edit">Sửa</button>
@@ -214,11 +258,11 @@
       </div>
     </header>
     <div id="perms"></div>
-    <div id="log"></div>
+    <div data-user-content id="log"></div>
     <div id="composer">
       <div class="atts" id="p-atts"></div>
       <div class="composer-row">
-        <button class="btn icon" id="p-attach" type="button" title="Đính kèm ảnh / tệp — hoặc dán ảnh (Ctrl+V), kéo thả tệp vào đây">
+        <button class="btn icon" id="p-attach" type="button" title="Đính kèm ảnh / tệp - hoặc dán ảnh (Ctrl+V), kéo thả tệp vào đây">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.2 5.2l-8.6 8.6a1.8 1.8 0 01-2.6-2.6l7.9-7.9"/></svg>
         </button>
         <textarea id="p-input" placeholder="Giao việc… dán ảnh Ctrl+V hoặc kéo thả tệp (Ctrl+Enter để gửi)"></textarea>
@@ -232,5 +276,5 @@
 <div id="modal"><div class="box card" id="modal-box"></div></div>
 <div id="toast"></div>
 <script type="module" src="/js/main.js"></script>
-</body>
+<script type="module" src="/js/viewer-controls.js"></script></body>
 </html>

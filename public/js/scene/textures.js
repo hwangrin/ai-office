@@ -1,6 +1,7 @@
 // Texture vẽ bằng canvas: gạch sàn, skyline ngày/đêm, nhãn chữ, vũng sáng, màn hình máy tính
 import * as THREE from 'three';
 import { rng } from './util.js';
+import { tr, getLanguage } from '../i18n.js';
 
 const FONT = '"Be Vietnam Pro", system-ui, sans-serif';
 
@@ -289,6 +290,7 @@ export class ScreenBank {
   constructor() {
     this.entries = new Map();
     this.last = 0;
+    this.language = getLanguage();
   }
   material(theme = 'docs', status = 'idle') {
     const s = ['working', 'waiting', 'error', 'offline', 'queued'].includes(status) ? status : 'idle';
@@ -305,9 +307,11 @@ export class ScreenBank {
     return this.entries.get(key).mat;
   }
   update(time) {
-    if (time - this.last < 0.25) return;
+    const languageChanged = this.language !== getLanguage();
+    this.language = getLanguage();
+    if (!languageChanged && time - this.last < 0.25) return;
     this.last = time;
-    for (const e of this.entries.values()) if (e.status === 'working' || e.status === 'waiting') this.draw(e, time);
+    for (const e of this.entries.values()) if (languageChanged || e.status === 'working' || e.status === 'waiting') this.draw(e, time);
   }
   draw(e, t) {
     const { g, c, theme, status } = e;
@@ -318,7 +322,7 @@ export class ScreenBank {
       g.fillStyle = '#ff6b6b'; g.beginPath(); g.arc(W / 2, H / 2 - 10, 54, 0, Math.PI * 2); g.fill();
       g.fillStyle = '#3a0e0e'; g.font = `700 80px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText('!', W / 2, H / 2 - 6);
-      g.fillStyle = '#ffb3b3'; g.font = `500 26px ${FONT}`; g.fillText('Có lỗi xảy ra', W / 2, H - 50);
+      g.fillStyle = '#ffb3b3'; g.font = `500 26px ${FONT}`; g.fillText(tr('An error occurred'), W / 2, H - 50);
       e.t.needsUpdate = true; return;
     }
     (DRAW[theme] ?? DRAW.docs)(g, W, H, status === 'working' || status === 'waiting' ? t : 0);
@@ -329,9 +333,9 @@ export class ScreenBank {
     if (status === 'waiting') {
       const a = 0.55 + 0.45 * Math.sin(t * 5);
       g.strokeStyle = `rgba(255,154,77,${a})`; g.lineWidth = 16; g.strokeRect(8, 8, W - 16, H - 16);
-      g.fillStyle = 'rgba(255,154,77,0.92)'; g.beginPath(); g.roundRect(W / 2 - 120, H / 2 - 34, 240, 68, 18); g.fill();
+      g.fillStyle = 'rgba(255,154,77,0.92)'; g.beginPath(); g.roundRect(W / 2 - 150, H / 2 - 34, 300, 68, 18); g.fill();
       g.fillStyle = '#1a1205'; g.font = `600 28px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText('Chờ duyệt', W / 2, H / 2 + 2);
+      g.fillText(tr('Awaiting approval'), W / 2, H / 2 + 2);
     }
     e.t.needsUpdate = true;
   }
